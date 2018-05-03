@@ -1,6 +1,6 @@
 #' Data-clustering
 #'
-#' This package contains the method \code{clusterby}, which enables clustering in dataframes. Particularly useful for biomathematics, cognitive sciences, etc.
+#' This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
 #' 
 #' \code{clusterby(df, ...)}
 #' @param df Dataframe to be clustered. Method also possible with vectors.
@@ -9,6 +9,7 @@
 #' @param dist Defaults to \code{Inf}. For a column \code{x} of positions, a cluster is a subset \code{y} which satisfies \bold{(i)} between every two points there is a path within \code{y} whose steps are 'small'; \bold{(ii)} y is maximal under condition (i). 'Small' here means the the distance between two points is strictly smaller than \code{d}.
 #' @param strict Defaults to \code{TRUE}. If set to \code{FALSE} the 'smaller than' is replaced by 'smaller than or equal to'.
 #' @param clustername Defaults to 'cluster'. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
+#' @param dim (New feature to be added. Allow points to be arbitrary data, allow input of a distance function/neighbourhoodscheme.)
 #' @keywords cluster clustering gene
 #' @export clusterby
 #' @examples df %>% clusterby(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
@@ -26,9 +27,12 @@ clusterby <- function(data, ...) {
 	tagcols <- INPUTVARS[['group']];
 	by <- INPUTVARS[['by']];
 	clustername <- INPUTVARS[['clustername']];
+	mode <- INPUTVARS[['mode']];
 	strict <- INPUTVARS[['strict']];
 
 	strict <- ('strict' %in% VARNAMES) && (strict==TRUE);
+	if(!('mode' %in% VARNAMES)) mode <- 'path';
+	if(!('dist' %in% VARNAMES) || !is.numeric(d)) d <- Inf;
 
 	if(is.vector(data)) {
 		## Geometrische Werkzeuge:
@@ -100,7 +104,7 @@ clusterby <- function(data, ...) {
 			## Gruppe
 			ind <- which(data[, tagname] == tag);
 			## Bilde Kluster mit Vektormethode:
-			clusters <- data[ind, by] %>% clusterby(dist=d, strict=strict);
+			clusters <- data[ind, by] %>% clusterby(dist=d, mode=mode, strict=strict);
 			## Schreibe Klustertags in ursprünglichen Dataframe:
 			for(i in c(1:length(ind))) data[ind[i], clustername] <- startingname + clusters[i];
 			## Verhindere Überschneidungen in den Klustertagnamen:
