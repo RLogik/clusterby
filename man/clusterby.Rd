@@ -19,7 +19,7 @@ clusterby(data, ...)
 
 \item{clustername}{Defaults to 'cluster'. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
-\item{dim}{(New feature to be added. Allow points to be arbitrary data, allow input of a distance function/neighbourhoodscheme.)}
+\item{dim}{New feature to be added. Allow points to be arbitrary data, allow input of a distance function/neighbourhoodscheme.}
 }
 \description{
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
