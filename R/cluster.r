@@ -2,7 +2,7 @@
 #'
 #' This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
 #' 
-#' \code{clusterby(df, ...)}
+#' \code{cluster(df, ...) [\%>\% split \%>\% summarise(...)]}
 #' @param df Dataframe to be clustered. Method also possible with vectors.
 #' @param by Specifies the column name for geometric data, according to which the clusters are to be built.
 #' @param group Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.
@@ -11,18 +11,18 @@
 #' @param clustername Defaults to 'cluster'. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
 #' @param dim New feature to be added. Allow points to be arbitrary data, allow input of a distance function/neighbourhoodscheme.
 #' @keywords cluster clustering gene
-#' @export clusterby
+#' @export cluster
 #' @export split
 #' @export summarise
-#' @examples df %>% clusterby(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
-#' @examples p %>% clusterby(dist=10); # p is a numeric vector
+#' @examples df %>% cluster(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
+#' @examples p %>% cluster(dist=10); # p is a numeric vector
 
 
 
 
 ################################################################
 #### HAUPTMETHODE ##############################################
-clusterby <- function(data, ...) {
+cluster <- function(data, ...) {
 	INPUTVARS <- list(...);
 	VARNAMES <- names(INPUTVARS);
 	d <- INPUTVARS[['dist']];
