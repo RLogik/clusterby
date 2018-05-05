@@ -119,7 +119,7 @@ cluster <- function(data, ...) {
 			## Gruppe
 			ind <- which(data[, tagname] == tag);
 			## Bilde Kluster mit Vektormethode:
-			clusters <- data[ind, by] %>% clusterby(dist=d, mode=mode, strict=strict);
+			clusters <- data[ind, by] %>% cluster(dist=d, mode=mode, strict=strict);
 			## Schreibe Klustertags in ursprünglichen Dataframe:
 			for(i in c(1:length(ind))) data[ind[i], clustername] <- startingname + clusters[i];
 			## Verhindere Überschneidungen in den Klustertagnamen:
