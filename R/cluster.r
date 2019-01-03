@@ -134,7 +134,7 @@ cluster <- function(data, ...) {
 };
 
 
-## Verwandelt geklusterte Daten in eine Liste.
+## Verwandelt geklusterte Daten in eine Liste um.
 split <- function(data, ...) {
 	INPUTVARS <- list(...);
 	VARNAMES <- names(INPUTVARS);
@@ -155,7 +155,17 @@ split <- function(data, ...) {
 };
 
 
-## Fasst eine Liste von Klustern zusammen.
+## Fasst eine Liste der Form
+## 	[
+##		{key1:[…], key2:[…], …, keyn:[…]},
+##		{key1:[…], key2:[…], …, keyn:[…]},
+##	.
+##	.
+##	.
+##		{key1:[…], key2:[…], …, keyn:[…]},
+##	]
+##
+## nach Attributen zusammen.
 summarise <- function(llist, ...) {
 	INPUTVARS <- list(...);
 	VARNAMES <- names(INPUTVARS);
