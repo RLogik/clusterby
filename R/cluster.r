@@ -75,7 +75,7 @@ cluster <- function(data, ...) {
 	n <- nrow(tib);
 
 	for(i in c(1:n)) {
-		df <- as.data.frame(tib[i, chunkname][[1]][[1]]);
+		df <- tib[i, chunkname][[1]][[1]];
 		df_ <- df[, c(by, clustername)];
 		n <- nrow(df_);
 		edges <- list();
@@ -93,7 +93,11 @@ cluster <- function(data, ...) {
 			edges[[i]] <- e;
 		}
 		clusters <- generateclasses(edges, min_cluster_size, max_cluster_size);
-		tib[i, chunkname][[1]][[1]][, clustername] <- clusters;
+		ind <- which(!is.na(clusters));
+		clusters <- clusters[ind];
+		df <- df[ind, ];
+		df[, clustername] <- clusters;
+		tib[i, chunkname][[1]][[1]] <- df;
 	}
 
 	df <- tib %>% unnest();
