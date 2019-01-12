@@ -1,256 +1,146 @@
 #' Data-clustering
 #'
 #' This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
-#' 
+#'
 #' \code{cluster(df, ...) [\%>\% split \%>\% summarise(...)]}
 #' @param df Dataframe to be clustered. Method also possible with vectors.
-#' @param by Specifies the column name for geometric data, according to which the clusters are to be built.
 #' @param group Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.
-#' @param dist Defaults to \code{Inf}. For a column \code{x} of positions, a cluster is a subset \code{y} which satisfies \bold{(i)} between every two points there is a path within \code{y} whose steps are 'small'; \bold{(ii)} y is maximal under condition (i). 'Small' here means the the distance between two points is strictly smaller than \code{d}.
-#' @param strict Defaults to \code{TRUE}. If set to \code{FALSE} the 'smaller than' is replaced by 'smaller than or equal to'.
-#' @param clustername Defaults to 'cluster'. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
-#' @param dim New feature to be added. Allow points to be arbitrary data, allow input of a distance function/neighbourhoodscheme.
+#' @param by Specifies the column(s) for geometric data, according to which the clusters are to be built.
+#' @param isnear A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.
+#' @param dist Defaults to \code{Inf}. If the default euclidean metric is used for \code{isnear}, this is the maximum tolerated distance between geometric data.
+#' @param strict Defaults to \code{TRUE}. If the default euclidean metric is used for \code{isnear}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.
+#' @param clustername Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
+#' @param min_cluster_size Defaults to \code{0}. If a cluster is smaller than this, it will not be viewed as a cluster.
+#' @param max_cluster_size Defaults to \code{Inf}. If a cluster is larger than this, it will be broken up into smaller pieces.
+#' @param split Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{%>% group_by(...)}).
 #' @keywords cluster clustering gene
 #' @export cluster
-#' @export split
-#' @export summarise
-#' @examples df %>% cluster(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
-#' @examples p %>% cluster(dist=10); # p is a numeric vector
+#' @examples gene %>% cluster(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
+#' @examples protein3d %>% cluster(by=c('x','y','z'), group=c('gene','actve'), dist=2.5, max=5000);
 
 
 
+require('dplyr');
 
-################################################################
-#### HAUPTMETHODE ##############################################
 cluster <- function(data, ...) {
 	INPUTVARS <- list(...);
 	VARNAMES <- names(INPUTVARS);
-	d <- INPUTVARS[['dist']];
+
 	tagcols <- INPUTVARS[['group']];
 	by <- INPUTVARS[['by']];
 	clustername <- INPUTVARS[['clustername']];
-	mode <- INPUTVARS[['mode']];
+	min_cluster_size <- INPUTVARS[['min']];
+	max_cluster_size <- INPUTVARS[['max']];
+	split <- INPUTVARS[['split']];
+	isnear <- INPUTVARS[['near']];
+	d <- INPUTVARS[['dist']];
 	strict <- INPUTVARS[['strict']];
-	summary <- INPUTVARS[['summary']];
-	format <- INPUTVARS[['format']];
 
-	strict <- ('strict' %in% VARNAMES) && (strict==TRUE);
-	if(!('format' %in% VARNAMES)) {
-		if('summary' %in% VARNAMES) {
-			format <- 'list';
+	if(!is.logical(strict)) strict <- FALSE;
+	if(!is.logical(split)) split <- FALSE;
+	if(!is.numeric(d)) d <- Inf;
+	if(!is.numeric(min_cluster_size)) min_cluster_size <- 0;
+	if(!is.numeric(max_cluster_size)) max_cluster_size <- Inf;
+	if(!is.function(isnear)) {
+		if(strict) {
+			isnear <- function(x, y) {
+				dx <- sqrt(sum((x-y)^2));
+				# dx <- max(abs(x-y));
+				return(dx < d);
+			};
 		} else {
-			format <- 'original';
+			isnear <- function(x, y) {
+				dx <- sqrt(sum((x-y)^2));
+				# dx <- max(abs(x-y));
+				return(dx <= d);
+			};
 		}
 	}
-	if(!('dist' %in% VARNAMES) || !is.numeric(d)) d <- Inf;
+	if(!is.character(clustername)) clustername <- 'cluster';
 
-	if(is.vector(data)) {
-		## Geometrische Werkzeuge:
-		mengendist <- function(X,Y) {D<-c(); for(x in X) D[length(D)+1] <- min(abs(Y-x)); return(D);};
-		if(strict) {
-			ball <- function(X,A,r) {return(which(mengendist(X,A) < r));};
-		} else {
-			ball <- function(X,A,r) {return(which(mengendist(X,A) <= r));};
-		}
 
-		## Iterativ die Kluster bilden:
-		n <- length(data);
-		index <- c(1:n);
-		tags <- rep(NA,n);
-		tag <- 0;
-		firsttime <- TRUE;
+	## Erstellung von Spaltennamen (Klusterspalte + Pufferspalte):
+	cols <- names(data);
+	data <- as.tibble(data);
+	chunkname <- 'chunk';
+	i <- 0;
+	while(chunkname %in% c(cols, clustername)) {chunkname <- paste0('chunk', i); i <- i+1;}
 
-		while(n > 0) {
-			if(firsttime) {
-				## Initialisiere Klustur.
-				## Beschränke Daten auf übrig gebliebene Indizes.
-				D <- data[index];
-				## Ordner dieser Menge Indizes zu.
-				I <- c(1:n);
-				## Bilde einen Kluster bzgl. Indizes.
-				J <- c(1);
-				component <- index[J];
-				firsttime <- FALSE;
-			} else {
-				Jneu <- ball(D,D[J],d);
-				dJ <- setdiff(Jneu,J);
-				dI <- index[dJ];
-				component <- c(component,dI);
+	## Prägruppierung der Daten:
+	if(!('group' %in% VARNAMES)) tagcols <- c();
+	leer <- list();
+	n <- nrow(data);
+	for(i in c(1:n)) leer[[i]] <- c();
+	data[[clustername]] <- leer;
+	tib <- data %>% group_by_at(tagcols) %>% nest(.key=chunkname);
+	n <- nrow(tib);
 
-				## Entferne alte Indizes.
-				index <- index[-c(J)];
-				## Beschränke Daten auf übrig gebliebene Indizes.
-				D <- data[index];
-				## Indizes entsprechen dem Wachstum des Klusturs:
-				J <- which(index %in% dI);
-				n <- length(D);
-
-				if(length(dI) == 0) {
-					# Markiere die Indizes der Datenpunkte, die zum Kluster gehören
-					tags[component] <- tag;
-					# Starte mit einem neuen Kluster
-					tag <- tag + 1;
-					firsttime <- TRUE;
+	for(i in c(1:n)) {
+		df <- as.data.frame(tib[i, chunkname][[1]][[1]]);
+		df_ <- df[, c(by, clustername)];
+		n <- nrow(df_);
+		edges <- list();
+		for(i in c(1:n)) {
+			r <- 0;
+			e <- c();
+			x <- df_[i, by];
+			for(j in c((i+1):n)) {
+				y <- df_[j, by];
+				if(near(x, y)) {
+					r <- r +  1;
+					e[r] <- j;
 				}
 			}
+			edges[[i]] <- e;
 		}
-
-		out <- tags;
-		if(format == 'list') {
-			
-		}
-
-		return(tags);
-	} else if(is.data.frame(data)) {
-		## Erstellung von Spaltennamen (Pufferspalte + Klusterspalte):
-		cols <- names(data);
-		if(!('clustername' %in% VARNAMES)) clustername <- 'cluster';
-		tagname <- 'tag';
-		i <- 0; while(tagname %in% c(cols,clustername)) {tagname <- paste('tag',i,collapse='');i <- i+1;}
-
-		## Prägruppierung der Daten:
-		if(!('group' %in% VARNAMES)) tagcols <- c();
-		data <- data %>% tagby(by=tagcols, tagname=tagname);
-
-		## Schleife durch alle Gruppierungen und bilde Kluster:
-		tags <- unique(data[, tagname]);
-		startingname <- 1;		
-		for(tag in tags) {
-			## Gruppe
-			ind <- which(data[, tagname] == tag);
-			## Bilde Kluster mit Vektormethode:
-			clusters <- data[ind, by] %>% cluster(dist=d, mode=mode, strict=strict);
-			## Schreibe Klustertags in ursprünglichen Dataframe:
-			for(i in c(1:length(ind))) data[ind[i], clustername] <- startingname + clusters[i];
-			## Verhindere Überschneidungen in den Klustertagnamen:
-			startingname <- startingname + max(0,clusters) + 1;
-		}
-
-		# for(cl in clusters) out[cl, ] <- df[[cl]][1, ];
-		return(data[, !(names(data) %in% c(tagname))]);
+		clusters <- generateclasses(edges, min_cluster_size, max_cluster_size);
+		tib[i, chunkname][[1]][[1]][, clustername] <- clusters;
 	}
+
+	df <- tib %>% unnest();
+	if(split) df <- df %>% group_by_at(c(tagcols, clustername)); #%>% nest(.key='data');
 
 	return(NULL);
 };
 
 
-## Verwandelt geklusterte Daten in eine Liste um.
-split <- function(data, ...) {
-	INPUTVARS <- list(...);
-	VARNAMES <- names(INPUTVARS);
-	clustername <- INPUTVARS[['clustername']];
-	if(!('clustername' %in% VARNAMES)) clustername <- 'cluster';
+generateclasses <- function(edges, min_sz, max_sz) {
+	if(!is.numeric(min_sz)) min_sz <- 0;
+	if(!is.numeric(max_sz)) max_sz <- Inf;
+	n <- length(edges);
+	if(n == 0) return(c());
 
-	clusters <- unique(as.vector(data[, clustername]));
-	out <- list();
-	i <- 0;
-	for(cl in clusters) {
-		i <- i+1;
-		df <- data[which(data[, clustername] == cl), !(names(data) %in% c(clustername))];
-		rownames(df) <- NULL;
-		out[[i]] <- df;
-	}
-
-	return(out);
-};
-
-
-## Fasst eine Liste der Form
-## 	[
-##		{key1:[…], key2:[…], …, keyn:[…]},
-##		{key1:[…], key2:[…], …, keyn:[…]},
-##	.
-##	.
-##	.
-##		{key1:[…], key2:[…], …, keyn:[…]},
-##	]
-##
-## nach Attributen zusammen.
-summarise <- function(llist, ...) {
-	INPUTVARS <- list(...);
-	VARNAMES <- names(INPUTVARS);
-
-	if(length(llist) == 0) return(c());
-
-	cols <- names(llist[[1]]);
-	out <- list();
-	blank <- rep(NA,length(llist));
-	for(col in cols) out[[col]] <- blank;
-	out <- as.data.frame(out);
-	rownames(out) <- NULL;
-
-	for(col in cols) {
-		f <- function(x) {return(NA);};
-		if(col %in% VARNAMES) {
-			s <- INPUTVARS[[col]];
-			if(mode(s) == 'function') {
-				f <- s;
-			} else if(mode(s) == 'character') {
-				if(s[1] == 'set') {
-					sep = ';'; if(length(s) > 1) sep = s[2];
-					f <- function(x) {return(paste(unique(x),collapse=sep));};
-				} else if(s[1] == 'list') {
-					sep = ';'; if(length(s) > 1) sep = s[2];
-					f <- function(x) {return(paste(x,collapse=sep));};
-				} else if(s[1] == 'length') {
-					f <- length;
-				} else if(s[1] == 'min') {
-					f <- min;
-				} else if(s[1] == 'max') {
-					f <- max;
-				} else if(s[1] == 'range') {
-					f <- function(x) {return(paste(min(x),max(x),sep='-'));};
-				} else if(s[1] == 'mean') {
-					f <- mean;
-				} else if(s[1] == 'var') {
-					f <- var;
-				} else if(s[1] == 'sd') {
-					f <- sd;
-				}
-			}
-		} else {
-			f <- function(x) {return(x[1]);};
+	getclass <- function(i, ind, sz) {
+		nodes = c();
+		children <- c(i);
+		bool <- TRUE;
+		while(sz > 0) {
+			children_ <- c();
+			for(i in children) children_ <- c(children_, edges[[i]]);
+			children <- children_;
+			if(length(children) > 0) break;
+			filt <- which(children %in% ind);
+			if(length(filt) >= sz) filt <- filt[c(1:sz)];
+			children <- children[filt];
+			nodes <- c(nodes, children);
+			ind <- ind[-c(children)];
+			sz <- sz - length(children);
 		}
+		return(list(indices=ind, nodes=nodes))
+	};
 
-		i <- 0;
-		for(data in llist) {
-			i <- i + 1;
-			out[i, col] <- f(as.vector(data[, col]));
+	key <- 0;
+	ind <- c(1:n);
+	classes <- rep(NA,n);
+	while(length(ind) > 0) {
+		i <- ind[1];
+		ind <- ind[-1];
+		obj <- getclass(i, ind, max_sz);
+		ind <- obj$indices;
+		nodes <- obj$nodes;
+		if(length(nodes) >= min_sz) {
+			classes[nodes] <- key;
+			key <- key + 1;
 		}
 	}
-
-	return(out);
-};
-
-
-
-
-################################################################
-#### LOKALE FUNKTION: tagby(data, ...) #########################
-####    markiert Zeilen in einem Dataframe zwecks Gruppierung ##
-tagby <- function(data, ...) {
-	INPUTVARS <- list(...);
-	VARNAMES <- names(INPUTVARS);
-	by <- INPUTVARS[['by']];
-	tagname <- INPUTVARS[['tagname']];
-
-	data <- data %>% dplyr::arrange_(.dots=by);
-	rownames(data) <- NULL;
-
-	tag <- 0;
-	firsttime <- TRUE;
-	lastrow <- NULL;
-	for(r in rownames(data)) {
-		if(!firsttime) {
-			change <- FALSE;
-			for(col in by) change <- change || !(data[r,col] == data[rlast,col]);
-			if(change) tag = tag + 1;
-			rlast <- r;
-		}
-		data[r,tagname] <- tag;
-		rlast <- r;
-		firsttime <- FALSE;
-	}
-
-	return(data);
 };
