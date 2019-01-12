@@ -26,8 +26,6 @@ cluster(data, ...)
 \item{max_cluster_size}{Defaults to \code{Inf}. If a cluster is larger than this, it will be broken up into smaller pieces.}
 
 \item{split}{Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
-
-\item{tib}{Tibble data which has been grouped.}
 }
 \description{
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
@@ -38,8 +36,6 @@ This package contains methods, which enables clustering in dataframes. Particula
 \examples{
 gene \%>\% cluster(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
 protein3d \%>\% cluster(by=c('x','y','z'), group=c('gene','actve'), dist=2.5, max=5000);
-\\code{summarise(tib, ...)}
-tib \%>\% summarise(concentration=mean, names=c('set',';'), attributes=c('list',';'));
 }
 \keyword{cluster}
 \keyword{clustering}
