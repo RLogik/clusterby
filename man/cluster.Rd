@@ -9,7 +9,7 @@ cluster(data, ...)
 \arguments{
 \item{df}{Dataframe to be clustered. Method also possible with vectors.}
 
-\item{group}{Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
+\item{groupby}{Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
 
 \item{by}{Specifies the column(s) for geometric data, according to which the clusters are to be built.}
 
@@ -34,8 +34,8 @@ This package contains methods, which enables clustering in dataframes. Particula
 \code{cluster(df, ...)}
 }
 \examples{
-gene \%>\% cluster(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
-protein3d \%>\% cluster(by=c('x','y','z'), group=c('gene','actve'), dist=2.5, max=5000);
+gene \%>\% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=FALSE, clustername='tag');
+protein3d \%>\% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5, max=5000);
 }
 \keyword{cluster}
 \keyword{clustering}

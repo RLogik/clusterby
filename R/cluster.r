@@ -4,7 +4,7 @@
 #'
 #' \code{cluster(df, ...)}
 #' @param df Dataframe to be clustered. Method also possible with vectors.
-#' @param group Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.
+#' @param groupby Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.
 #' @param by Specifies the column(s) for geometric data, according to which the clusters are to be built.
 #' @param isnear A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.
 #' @param dist Defaults to \code{Inf}. If the default euclidean metric is used for \code{isnear}, this is the maximum tolerated distance between geometric data.
@@ -14,8 +14,8 @@
 #' @param max_cluster_size Defaults to \code{Inf}. If a cluster is larger than this, it will be broken up into smaller pieces.
 #' @param split Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).
 #' @export cluster
-#' @examples gene %>% cluster(by='position', group=c('gene','actve'), dist=400, strict=FALSE, clustername='tag');
-#' @examples protein3d %>% cluster(by=c('x','y','z'), group=c('gene','actve'), dist=2.5, max=5000);
+#' @examples gene %>% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=FALSE, clustername='tag');
+#' @examples protein3d %>% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5, max=5000);
 #' @keywords cluster clustering gene
 
 
@@ -25,7 +25,7 @@ cluster <- function(data, ...) {
 	INPUTVARS <- list(...);
 	VARNAMES <- names(INPUTVARS);
 
-	tagcols <- INPUTVARS[['group']];
+	groupby <- INPUTVARS[['groupby']];
 	by <- INPUTVARS[['by']];
 	clustername <- INPUTVARS[['clustername']];
 	min_cluster_size <- INPUTVARS[['min']];
@@ -66,12 +66,12 @@ cluster <- function(data, ...) {
 	while(chunkname %in% c(cols, clustername)) {chunkname <- paste0('chunk', i); i <- i+1;}
 
 	## Prägruppierung der Daten:
-	if(!('group' %in% VARNAMES)) tagcols <- c();
+	if(!is.vector(groupby)) groupby <- c();
 	leer <- list();
 	n <- nrow(data);
 	for(i in c(1:n)) leer[[i]] <- c();
 	data[[clustername]] <- leer;
-	tib <- data %>% group_by_at(tagcols) %>% nest(.key=chunkname);
+	tib <- data %>% group_by_at(groupby) %>% nest(.key=chunkname);
 	n <- nrow(tib);
 
 	for(i in c(1:n)) {
@@ -101,7 +101,7 @@ cluster <- function(data, ...) {
 	}
 
 	df <- tib %>% unnest();
-	if(split) df <- df %>% group_by_at(c(tagcols, clustername)); #%>% nest(.key='data');
+	if(split) df <- df %>% group_by_at(c(groupby, clustername)); #%>% nest(.key='data');
 
 	return(NULL);
 };
