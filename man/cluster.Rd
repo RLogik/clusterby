@@ -7,7 +7,7 @@
 cluster(data, ...)
 }
 \arguments{
-\item{df}{Dataframe to be clustered. Method also possible with vectors.}
+\item{df}{Tibble/Dataframe to be clustered. Method also possible with vectors.}
 
 \item{groupby}{Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
 
