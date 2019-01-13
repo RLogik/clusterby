@@ -13,11 +13,11 @@ cluster(data, ...)
 
 \item{by}{Specifies the column(s) for geometric data, according to which the clusters are to be built.}
 
-\item{isnear}{A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.}
+\item{near}{A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.}
 
-\item{max.dist}{Defaults to \code{Inf}. If the default euclidean metric is used for \code{isnear}, this is the maximum tolerated distance between geometric data.}
+\item{max.dist}{Defaults to \code{Inf}. If the default euclidean metric is used for \code{near}, this is the maximum tolerated distance between geometric data.}
 
-\item{strict}{Defaults to \code{TRUE}. If the default euclidean metric is used for \code{isnear}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
+\item{strict}{Defaults to \code{TRUE}. If the default euclidean metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
 \item{clustername}{Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 

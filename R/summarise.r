@@ -50,14 +50,8 @@ summarise <- function(tib, ...) {
 		method[[col]] <- f;
 	}
 
-	groupname <- 'cluster';
-	i <- 0;
-	while(groupname %in% cols) {
-		groupname <- paste0('cluster', i);
-		i <- i+1;
-	}
-
-	tib <- nest(tib, .key=groupname);
+	groupname <- 'group'; i <- 0; while(groupname %in% cols) {groupname <- paste0('group', i); i <- i+1;}
+	tib <- nest(tib, .key=!!(groupname));
 	n <- nrow(tib);
 	for(i in c(1:n)) {
 		tib_ <- tib[i, groupname][[1]][[1]];
