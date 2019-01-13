@@ -15,15 +15,13 @@ cluster(data, ...)
 
 \item{isnear}{A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.}
 
-\item{dist}{Defaults to \code{Inf}. If the default euclidean metric is used for \code{isnear}, this is the maximum tolerated distance between geometric data.}
+\item{max.dist}{Defaults to \code{Inf}. If the default euclidean metric is used for \code{isnear}, this is the maximum tolerated distance between geometric data.}
 
 \item{strict}{Defaults to \code{TRUE}. If the default euclidean metric is used for \code{isnear}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
 \item{clustername}{Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
-\item{min_cluster_size}{Defaults to \code{0}. If a cluster is smaller than this, it will not be viewed as a cluster.}
-
-\item{max_cluster_size}{Defaults to \code{Inf}. If a cluster is larger than this, it will be broken up into smaller pieces.}
+\item{min.size}{Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
 \item{split}{Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
 }
@@ -35,7 +33,7 @@ This package contains methods, which enables clustering in dataframes. Particula
 }
 \examples{
 gene \%>\% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=FALSE, clustername='tag');
-protein3d \%>\% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5, max=5000);
+protein3d \%>\% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5,);
 }
 \keyword{cluster}
 \keyword{clustering}
