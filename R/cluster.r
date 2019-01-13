@@ -120,13 +120,14 @@ generateclasses <- function(edges, min_sz) {
 			nodes = c();
 			children <- c(i);
 			while(TRUE) {
-				grandchildren <- c();
-				for(j in children) {
-					e <- edges[[j]]
-					if(length(e) == 1) if(is.na(e)) next;
-					grandchildren <- c(grandchildren, e);
+				e <- edges[children];
+				if(length(e) == 1) {
+					grandchildren <- e[[1]];
+				} else {
+					grandchildren <- apply(cbind(edges[children]), 2, unlist)[,1];
 				}
-				children <- grandchildren;
+				if(length(grandchildren) == 0) break;
+				children <- grandchildren[which(!is.na(grandchildren))];
 				filt <- which(children %in% ind);
 				if(length(filt) == 0) break;
 				children <- children[filt];
