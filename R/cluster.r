@@ -8,12 +8,12 @@
 #' @param by Specifies the column(s) for geometric data, according to which the clusters are to be built.
 #' @param near A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.
 #' @param max.dist Defaults to \code{Inf}. If the default euclidean metric is used for \code{near}, this is the maximum tolerated distance between geometric data.
-#' @param strict Defaults to \code{TRUE}. If the default euclidean metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.
+#' @param strict Defaults to \code{FALSE}. If the default euclidean metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.
 #' @param clustername Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
 #' @param min.size Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.
 #' @param split Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).
 #' @export cluster
-#' @examples gene %>% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=FALSE, clustername='tag');
+#' @examples gene %>% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=TRUE, clustername='tag');
 #' @examples protein3d %>% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5,);
 #' @keywords cluster clustering gene
 
@@ -72,6 +72,7 @@ cluster <- function(data, ...) {
 
 	# Erzeuge Kanten für Klusterbausteine.
 	tib <- nest(group_by_at(data, groupby), .key=!!(chunkname));
+	pos0 <- 0;
 	m <- nrow(tib);
 	for(i in c(1:m)) {
 		chunk <- tib[i, chunkname][[1]][[1]];
@@ -86,13 +87,14 @@ cluster <- function(data, ...) {
 				bool <- lapply(pts_, function(y) {
 					return(near(pt, y));
 				});
-				e <- j + which(unlist(bool));
+				e <- pos0 + j + which(unlist(bool));
 			}
 			if(length(e) == 0) e <- c(NA);
 			return(e);
 		});
 		chunk[[edgesname]] <- edges;
 		tib[i, chunkname][[1]][[1]] <- chunk;
+		pos0 <- pos0 + n;
 	}
 
 	# Erzeuge Kluster aus Kanten.
@@ -100,7 +102,8 @@ cluster <- function(data, ...) {
 	clusters <- generateclasses(tib[[edgesname]], min_cluster_size);
 	ind <- which(!is.na(clusters));
 	clusters <- clusters[ind];
-	data <- add_column(data[ind,], !!(clustername) := clusters);
+	tib <- tib[ind, ] %>% select(-c(edgesname));
+	data <- add_column(tib, !!(clustername) := clusters);
 
 	if(split) data <- group_by_at(data, c(groupby, clustername)); #%>% nest(.key=!!(dataname);
 
@@ -114,12 +117,13 @@ generateclasses <- function(edges, min_sz) {
 		key <- 0;
 		ind <- c(1:n);
 		classes <- rep(NA,n);
+
 		while(length(ind) > 0) {
 			i <- ind[1];
 			ind <- ind[-1];
-
 			nodes = c(i);
 			children <- nodes;
+
 			while(TRUE) {
 				e <- edges[children];
 				if(length(e) == 1) {
@@ -134,13 +138,13 @@ generateclasses <- function(edges, min_sz) {
 				if(length(filt) == 0) break;
 				children <- children[filt];
 				nodes <- c(nodes, children);
-				ind <- ind[!which(ind %in% children)];
+				ind <- ind[!(ind %in% children)];
 			}
 
-			if(length(nodes) >= min_sz) {
-				classes[nodes] <- key;
-				key <- key + 1;
-			}
+			if(length(nodes) < min_sz) next;
+
+			classes[nodes] <- key;
+			key <- key + 1;
 		}
 	}
 

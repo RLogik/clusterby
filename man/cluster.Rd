@@ -17,7 +17,7 @@ cluster(data, ...)
 
 \item{max.dist}{Defaults to \code{Inf}. If the default euclidean metric is used for \code{near}, this is the maximum tolerated distance between geometric data.}
 
-\item{strict}{Defaults to \code{TRUE}. If the default euclidean metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
+\item{strict}{Defaults to \code{FALSE}. If the default euclidean metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
 \item{clustername}{Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
@@ -32,7 +32,7 @@ This package contains methods, which enables clustering in dataframes. Particula
 \code{cluster(df, ...)}
 }
 \examples{
-gene \%>\% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=FALSE, clustername='tag');
+gene \%>\% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=TRUE, clustername='tag');
 protein3d \%>\% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5,);
 }
 \keyword{cluster}
