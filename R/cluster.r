@@ -74,6 +74,7 @@ cluster <- function(data, ...) {
 	for(i in c(1:m)) {
 		chunk <- tib[i, chunkname][[1]][[1]];
 		n <- nrow(chunk);
+		if(n == 0) next;
 		pts <- list(); for(j in c(1:n)) pts[[j]] <- chunk[j, by];
 		edges <- lapply(c(1:n), function(j) {
 			e <- c();
@@ -94,7 +95,7 @@ cluster <- function(data, ...) {
 
 	# Erzeuge Kluster aus Kanten.
 	tib <- unnest(tib);
-	clusters <- generateclasses(tib[, edgesname], min_cluster_size);
+	clusters <- generateclasses(tib[[edgesname]], min_cluster_size);
 	ind <- which(!is.na(clusters));
 	clusters <- clusters[ind];
 	tib <- chunk[ind, ];
@@ -107,34 +108,36 @@ cluster <- function(data, ...) {
 
 
 generateclasses <- function(edges, min_sz) {
-	n <- nrow(edges);
-	key <- 0;
-	ind <- c(1:n);
-	classes <- rep(NA,n);
-	while(length(ind) > 0) {
-		i <- ind[1];
-		ind <- ind[-1];
+	n <- length(edges);
+	if(n > 0) {
+		key <- 0;
+		ind <- c(1:n);
+		classes <- rep(NA,n);
+		while(length(ind) > 0) {
+			i <- ind[1];
+			ind <- ind[-1];
 
-		nodes = c();
-		children <- c(i);
-		while(TRUE) {
-			grandchildren <- c();
-			for(j in children) {
-				e <- edges[j,1];
-				if(length(e) == 1) if(is.na(e)) next;
-				grandchildren <- c(grandchildren, e);
+			nodes = c();
+			children <- c(i);
+			while(TRUE) {
+				grandchildren <- c();
+				for(j in children) {
+					e <- edges[[j]]
+					if(length(e) == 1) if(is.na(e)) next;
+					grandchildren <- c(grandchildren, e);
+				}
+				children <- grandchildren;
+				filt <- which(children %in% ind);
+				if(length(filt) == 0) break;
+				children <- children[filt];
+				nodes <- c(nodes, children);
+				ind <- ind[-c(children)];
 			}
-			children <- grandchildren;
-			filt <- which(children %in% ind);
-			if(length(filt) == 0) break;
-			children <- children[filt];
-			nodes <- c(nodes, children);
-			ind <- ind[-c(children)];
-		}
 
-		if(length(nodes) >= min_sz) {
-			classes[nodes] <- key;
-			key <- key + 1;
+			if(length(nodes) >= min_sz) {
+				classes[nodes] <- key;
+				key <- key + 1;
+			}
 		}
 	}
 
