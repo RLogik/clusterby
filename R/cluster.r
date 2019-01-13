@@ -126,7 +126,7 @@ generateclasses <- function(edges, min_sz) {
 			}
 			children <- grandchildren;
 			filt <- which(children %in% ind);
-			if(length(filt) == 0) next;
+			if(length(filt) == 0) break;
 			children <- children[filt];
 			nodes <- c(nodes, children);
 			ind <- ind[-c(children)];
