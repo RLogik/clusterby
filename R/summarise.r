@@ -57,7 +57,7 @@ summarise <- function(tib, ...) {
 		i <- i+1;
 	}
 
-	tib <- tib %>% nest(.key=groupname);
+	tib <- nest(tib, .key=groupname);
 	n <- nrow(tib);
 	for(i in c(1:n)) {
 		tib_ <- tib[i, groupname][[1]][[1]];
@@ -68,7 +68,7 @@ summarise <- function(tib, ...) {
 		}
 		tib[i, groupname][[1]][[1]] <- tib_;
 	}
-	tib <- tib %>% unnest();
+	tib <- unnest(tib);
 
 	return(tib);
 };

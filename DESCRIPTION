@@ -8,5 +8,7 @@ License: open source.
 Encoding: UTF-8
 Imports:
 	tidyverse
+Suggests:
+	parallel
 LazyData: true
 RoxygenNote: 6.1.1
