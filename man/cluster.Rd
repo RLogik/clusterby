@@ -13,17 +13,21 @@ cluster(data, ...)
 
 \item{by}{Specifies the column(s) for geometric data, according to which the clusters are to be built.}
 
-\item{near}{A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Euclidian metric.}
+\item{near}{A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
 
-\item{max.dist}{Defaults to \code{Inf}. If the default euclidean metric is used for \code{near}, this is the maximum tolerated distance between geometric data.}
+\item{min.dist}{Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.}
 
-\item{strict}{Defaults to \code{FALSE}. If the default euclidean metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
+\item{max.dist}{Defaults to \code{Inf}. If the default manhattan metric is used for \code{near}, this is the maximum tolerated distance between geometric data.}
+
+\item{strict}{Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
 \item{clustername}{Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
 \item{min.size}{Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
 \item{split}{Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
+
+\item{is.linear}{Defaults to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
 }
 \description{
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
