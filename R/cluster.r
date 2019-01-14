@@ -14,6 +14,7 @@
 #' @param min.size Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.
 #' @param split Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).
 #' @param is.linear Defaults to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.
+#' @param is.disjoint Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE}, then the clusters must occupy disjoint intervals.
 #' @export cluster
 #' @examples gene %>% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=TRUE, clustername='tag');
 #' @examples protein3d %>% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5,);
@@ -35,13 +36,15 @@ cluster <- function(data, ...) {
 	d_min <- INPUTVARS[['min.dist']];
 	d_max <- INPUTVARS[['max.dist']];
 	strict <- INPUTVARS[['strict']];
-	islinear <- INPUTVARS[['is.linear']];
+	is_linear <- INPUTVARS[['is.linear']];
+	is_disjoint <- INPUTVARS[['is.disjoint']];
 
 	if(!is.vector(groupby)) groupby <- c();
 	if(!is.logical(strict)) strict <- FALSE;
 	if(!is.logical(split)) split <- FALSE;
-	if(!is.logical(islinear)) islinear <- FALSE;
-	if(!is.numeric(d_min)) d_min <- Inf;
+	if(!is.logical(is_linear)) is_linear <- FALSE;
+	if(!is.logical(is_disjoint)) is_disjoint <- FALSE;
+	if(!is.numeric(d_min)) d_min <- 0;
 	if(!is.numeric(d_max)) d_max <- Inf;
 	if(!is.numeric(min_cluster_size)) min_cluster_size <- 0;
 	if(!is.function(near)) {
@@ -76,7 +79,7 @@ cluster <- function(data, ...) {
 	## Prägruppierung der Daten:
 	leer <- list(); for(i in c(1:n)) leer[[i]] <- c(NA);
 	tib <- add_column(data, !!(clustername):=leer, !!(edgesname):=leer);
-	if(islinear) tib <- tib[order(by), ];
+	if(is_linear) tib <- tib[order(tib[[by]]), ];
 
 	# Erzeuge Kanten für Klusterbausteine.
 	tib <- data %>% group_by_at(groupby) %>% nest(.key=!!(chunkname));
@@ -87,7 +90,7 @@ cluster <- function(data, ...) {
 		n <- nrow(chunk);
 		if(n == 0) next;
 		pts <- list(); for(j in c(1:n)) pts[[j]] <- chunk[j, by];
-		if(islinear) {
+		if(is_linear) {
 			edges <- lapply(c(1:n), function(j) {
 				e <- c(NA);
 				if(j < n) {
@@ -124,6 +127,25 @@ cluster <- function(data, ...) {
 	clusters <- clusters[ind];
 	tib <- tib[ind, ] %>% select(-c(edgesname));
 	data <- add_column(tib, !!(clustername) := clusters);
+
+	if(is_linear && is_disjoint) {
+		data <- data[order(data[[by]], data[[clustername]]), ];
+		n <- nrow(data);
+		if(n > 0) {
+			clusters <- data[[clustername]];
+			cl_curr <- clusters[1];
+			cl_replace <- 1;
+			sapply(c(1:n), function(i) {
+				cl <- clusters[i];
+				if(!(cl == cl_curr)) {
+					cl_curr <<- cl;
+					cl_replace <<- cl_replace + 1;
+				}
+				data[i, clustername] <<- cl_replace;
+				return(TRUE);
+			});
+		}
+	}
 
 	if(split) data <- group_by_at(data, c(groupby, clustername)); #%>% nest(.key=!!(dataname);
 
