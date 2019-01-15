@@ -118,7 +118,7 @@ cluster <- function(data, ...) {
 
 		if(is_disjoint && do_summary) {
 			oldcols <- unique(c(group_by, keep));
-			summcols <- c('pstart','pend','nstart','nend','distance','n');
+			summcols <- c('pstart','pend','distance','nstart','nend','size');
 			strich <- '';
 			pref <- function(x) {return(paste0(strich,x));};
 			if(max(summcols %in% oldcols)) {
@@ -153,7 +153,7 @@ cluster <- function(data, ...) {
 				if(do_summary) {
 					cl <- cl + 1;
 					for(col in oldcols) tib_summ[cl, col] <- tib[i0, col];
-					tib_summ[cl, summcols] <- c(pt, pt_, i0, i1, abs(pt_-pt) + 1, sz);
+					tib_summ[cl, summcols] <- c(pt, pt_, abs(pt_-pt) + 1, i0, i1, sz);
 				} else {
 					dsel <- c(i0:i1);
 					sel <- c(sel, dsel);
