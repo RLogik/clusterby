@@ -23,7 +23,7 @@ cluster(data, ...)
 
 \item{strict}{boolean. Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
-\item{clustername}{string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
+\item{cluster.name}{string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
 \item{min.size}{a natural number. Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
@@ -45,8 +45,8 @@ This package contains methods, which enables clustering in dataframes. Particula
 }
 \examples{
 gene \%>\% cluster(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=FALSE, is.linear=TRUE, is.disjoint=TRUE, summary=TRUE);
-protein3d \%>\% cluster(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, clustername='segment');
-soil_data \%>\% cluster(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, clustername='clump');
+protein3d \%>\% cluster(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
+soil_data \%>\% cluster(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
 }
 \keyword{cluster}
 \keyword{clustering}

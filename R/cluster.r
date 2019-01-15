@@ -11,7 +11,7 @@
 #' @param min.dist a real number. Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.
 #' @param max.dist a real number. Defaults to \code{Inf}. If the default manhattan metric is used for \code{near}, this is the maximum tolerated distance between geometric data.
 #' @param strict boolean. Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.
-#' @param clustername string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
+#' @param cluster.name string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
 #' @param min.size a natural number. Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.
 #' @param split boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).
 #' @param is.linear boolean. Defaults to \code{TRUE}, if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.
@@ -20,8 +20,8 @@
 #' @param summary boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).
 #' @export cluster
 #' @examples gene %>% cluster(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=FALSE, is.linear=TRUE, is.disjoint=TRUE, summary=TRUE);
-#' @examples protein3d %>% cluster(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, clustername='segment');
-#' @examples soil_data %>% cluster(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, clustername='clump');
+#' @examples protein3d %>% cluster(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
+#' @examples soil_data %>% cluster(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
 #' @keywords cluster clustering gene
 
 
@@ -34,7 +34,7 @@ cluster <- function(data, ...) {
 	group_by <- INPUTVARS[['filter.by']];
 	keep <- INPUTVARS[['keep']];
 	by <- INPUTVARS[['by']];
-	clustername <- INPUTVARS[['clustername']];
+	clustername <- INPUTVARS[['cluster.name']];
 	min_cluster_size <- INPUTVARS[['min.size']];
 	split <- INPUTVARS[['split']];
 	near <- INPUTVARS[['near']];
