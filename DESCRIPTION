@@ -3,7 +3,7 @@ Title: Data Clustering
 Version: 2.0.0
 Authors@R: person("R", "Logik", email = "r.bitlogik@gmail.com", role = c("aut", "cre"))
 Description: Data Clustering for data frames. Pregroup data, and form maximal clusters based on a column with geometric data.
-Depends: R (>= 3.5.1)
+Depends: R (>= 3.4.0)
 License: open source.
 Encoding: UTF-8
 Imports:
