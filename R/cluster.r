@@ -135,15 +135,19 @@ cluster <- function(data, ...) {
 			clusters <- data[[clustername]];
 			cl_curr <- clusters[1];
 			cl_replace <- 1;
+			ind <- c();
+			i0 <- 1;
 			sapply(c(1:n), function(i) {
 				cl <- clusters[i];
 				if(!(cl == cl_curr)) {
+					if(i-i0+1 >= min_cluster_size) ind <<- c(ind, c(i0:i));
 					cl_curr <<- cl;
 					cl_replace <<- cl_replace + 1;
 				}
 				data[i, clustername] <<- cl_replace;
 				return(TRUE);
 			});
+			data <- data[ind, ];
 		}
 	}
 
