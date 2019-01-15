@@ -15,7 +15,7 @@ cluster(data, ...)
 
 \item{keep}{string vector. Defaults to \code{c()}. Specificies columns, which should be kept in a summary.}
 
-\item{near}{function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
+\item{near}{symmetric function in two arguments. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
 
 \item{min.dist}{a real number. Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.}
 
@@ -29,9 +29,11 @@ cluster(data, ...)
 
 \item{split}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
 
-\item{is.linear}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
+\item{is.linear}{boolean. Defaults to \code{TRUE}, if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
 
-\item{is.disjoint}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE}, then the clusters must occupy disjoint intervals.}
+\item{is.disjoint}{boolean. Defaults to \code{TRUE}, if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE}, then the clusters must occupy disjoint intervals.}
+
+\item{presort}{boolean. Defaults to \code{TRUE}. If \code{TRUE} and \code{is.linear=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}.}
 
 \item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
 }
