@@ -13,6 +13,8 @@ cluster(data, ...)
 
 \item{filter.by}{string vector. Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
 
+\item{keep}{string vector. Defaults to \code{c()}. Specificies columns, which should be kept in a summary.}
+
 \item{near}{function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
 
 \item{min.dist}{a real number. Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.}

@@ -6,6 +6,7 @@
 #' @param df Tibble/Dataframe to be clustered. Method also possible with vectors.
 #' @param by string vector. Specifies the column(s) for geometric data, according to which the clusters are to be built.
 #' @param filter.by string vector. Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.
+#' @param keep string vector. Defaults to \code{c()}. Specificies columns, which should be kept in a summary.
 #' @param near function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.
 #' @param min.dist a real number. Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.
 #' @param max.dist a real number. Defaults to \code{Inf}. If the default manhattan metric is used for \code{near}, this is the maximum tolerated distance between geometric data.
@@ -30,6 +31,7 @@ cluster <- function(data, ...) {
 	VARNAMES <- names(INPUTVARS);
 
 	group_by <- INPUTVARS[['filter.by']];
+	keep <- INPUTVARS[['keep']];
 	by <- INPUTVARS[['by']];
 	clustername <- INPUTVARS[['clustername']];
 	min_cluster_size <- INPUTVARS[['min.size']];
@@ -44,11 +46,12 @@ cluster <- function(data, ...) {
 	do_summary <- INPUTVARS[['summary']];
 
 	if(!is.vector(group_by)) group_by <- c();
+	if(!is.vector(keep)) keep <- c();
 	if(!is.logical(strict)) strict <- FALSE;
 	if(!is.logical(split)) split <- FALSE;
 	if(!is.logical(is_linear)) is_linear <- FALSE;
 	if(!is.logical(is_disjoint)) is_disjoint <- FALSE;
-	if(!is.logical(do_summary)) do_summary <- FALSE;
+	if(!is.logical(do_summary) || !is_disjoint) do_summary <- FALSE;
 	if(!is.numeric(d_min)) d_min <- 0;
 	if(!is.numeric(d_max)) d_max <- Inf;
 	if(!is.numeric(min_cluster_size)) min_cluster_size <- 0;
@@ -81,36 +84,41 @@ cluster <- function(data, ...) {
 
 	if(is_linear && is_disjoint) {
 		## Füge Indizes für Gruppennamen und zur Erhaltung der Reihenfolge hinzu:
+		tib <- tib[order(tib[[by]]), ];
 		indexname <- uniquecolumnname('index', c(cols, clustername));
-		groupname <- uniquecolumnname('group', c(cols, clustername));
 		tib <- tib %>% add_column(!!(indexname):=c(1:n));
+	}
 
-		## Indizes für Präsortierung hinzufügen.
-		tib <- tib %>% group_by_at(group_by) %>% nest(.key=!!(chunkname));
-		m <- nrow(tib);
-		tib <- tib %>% add_column(!!(groupname):=c(1:m));
-		tib <- tib %>% unnest();
+	## Indizes für Präsortierung hinzufügen.
+	groupname <- uniquecolumnname('group', c(cols, clustername));
+	tib <- tib %>% group_by_at(group_by) %>% nest(.key=!!(chunkname));
+	m <- nrow(tib);
+	tib <- tib %>% add_column(!!(groupname):=c(1:m));
+	tib <- tib %>% unnest();
 
+	if(is_linear && is_disjoint) {
 		## Reihenfolge wiederherstellen.
 		tib <- tib[order(tib[[indexname]]), ];
 		tib <- tib %>% select(-c(indexname));
 
 		if(do_summary) {
+			oldcols <- unique(c(group_by, keep));
 			summcols <- c('pstart','pend','nstart','nend','n');
 			strich <- '';
 			pref <- function(x) {return(paste0(strich,x));};
-			if(max(summcols %in% group_by)) {
-				while(max(sapply(summcols, pref) %in% group_by)) strich <- paste0('_',strich);
+			if(max(summcols %in% oldcols)) {
+				while(max(sapply(summcols, pref) %in% oldcols)) strich <- paste0('_',strich);
 				summcols <- sapply(summcols, pref)
 				warning(paste0("One or more of the columns ",paste(summcols, sep=', ')," is currently occupied. Summary columns will be appropriately renamed. In future you may wish to rename your columns before using the `clusterby` methods."));
 			}
 			tib_summ <- as_tibble();
-			for(col in c(group_by,summcols)) tib_summ <- tib_summ %>% add_column(!!(col):=c(NA));
+			for(col in c(oldcols,summcols)) tib_summ <- tib_summ %>% add_column(!!(col):=c(NA));
 			tib_summ <- tib_summ[c(), ];
 		}
 
 		i0 <- 1;
 		cl <- 0;
+		sel <- c();
 		while(i0 <= n) {
 			i1 <- i0 + 1;
 			pt <- tib[i0, by][[1]][[1]];
@@ -119,21 +127,22 @@ cluster <- function(data, ...) {
 			while(i1 <= n) {
 				pt__ <- tib[i1, by][[1]][[1]];
 				g_ <- tib[i1, groupname][[1]][[1]]
-				if(!near(pt, pt__) || !(g == g_)) {
-					i1 <- i1 - 1;
-					break;
-				}
+				if(!near(pt, pt__) || !(g == g_)) break;
 				pt_ <- pt__;
 				i1 <- i1 +  1;
 			}
+			i1 <- i1 - 1;
+
 			sz <- i1-i0+1;
 			if(sz >= min_cluster_size) {
 				if(do_summary) {
 					cl <- cl + 1;
-					for(col in group_by) tib_summ[cl, col] <- tib[i0, col];
+					for(col in oldcols) tib_summ[cl, col] <- tib[i0, col];
 					tib_summ[cl, summcols] <- c(pt, pt_, i0, i1, sz);
 				} else {
-					for(j in c(i0,i1)) tib[j, clustername] <- cl;
+					dsel <- c(i0:i1);
+					sel <- c(sel, dsel);
+					tib[dsel, clustername] <- cl;
 					cl <- cl + 1;
 				}
 			}
@@ -141,10 +150,52 @@ cluster <- function(data, ...) {
 		}
 
 		if(do_summary) {
-			data <- tib_summ;
+			data <- tib_summ; # %>% arrange_(group_by);
 		} else {
-			data <- tib %>% select(-c(groupname));
+			data <- tib[sel, ] %>% select(-c(groupname));
 		}
+
+	} else if(is_linear) {
+		tib <- tib[order(tib[[group_by]],tib[[by]]), ];
+		tib <- tib %>% group_by_at(groupname) %>% nest(.key=!!(chunkname));
+
+		m <- nrow(tib);
+		cl <- 0;
+		sel <- c();
+		for(i in c(1:m)) {
+			chunk <- tib[i, chunkname][[1]][[1]];
+			n <- nrow(chunk);
+			if(n < min_cluster_size) next;
+
+			i0 <- 1;
+			sel_ <- c();
+			while(i0 <= n) {
+				i1 <- i0 + 1;
+				pt <- chunk[i0, by][[1]][[1]];
+				pt_ <- pt;
+				while(i1 <= n) {
+					pt__ <- chunk[i1, by][[1]][[1]];
+					if(!near(pt, pt__)) break;
+					pt_ <- pt__;
+					i1 <- i1 +  1;
+				}
+				i1 <- i1 - 1;
+
+				sz <- i1-i0+1;
+				if(sz >= min_cluster_size) {
+					dsel <- c(i0:i1);
+					sel_ <- c(sel_, dsel);
+					chunk[dsel, clustername] <- cl;
+					cl <- cl + 1;
+				}
+				i0 <- i1 + 1;
+			}
+
+			tib[i, chunkname][[1]][[1]] <- chunk[sel_, ];
+			sel <- c(sel, i);
+		}
+
+		data <- tib[sel, ] %>% unnest();
 	} else {
 		edgesname <- uniquecolumnname('edges', c(cols, clustername));
 
@@ -154,55 +205,42 @@ cluster <- function(data, ...) {
 		if(is_linear) tib <- tib[order(tib[[by]]), ];
 
 		# Erzeuge Kanten für Klusterbausteine.
-		if(length(group_by) > 0) tib <- tib %>% group_by_at(group_by);
-		tib <- tib %>% group_by_at(group_by) %>% nest(.key=!!(chunkname));
+		tib <- tib %>% group_by_at(groupname) %>% nest(.key=!!(chunkname));
 		pos0 <- 0;
 		m <- nrow(tib);
 		for(i in c(1:m)) {
 			chunk <- tib[i, chunkname][[1]][[1]];
 			n <- nrow(chunk);
-			if(n == 0) next;
+			if(n < min_cluster_size) next;
 			pts <- list(); for(j in c(1:n)) pts[[j]] <- chunk[j, by];
-			if(is_linear) {
-				edges <- lapply(c(1:n), function(j) {
-					e <- c(NA);
-					if(j < n) {
-						pt <- pts[[j]];
-						pt_ <- pts[[j+1]];
-						if(near(pt, pt_)) e <- c(pos0 + j + 1);
-					}
-					return(e);
-				});
-			} else {
-				edges <- lapply(c(1:n), function(j) {
-					e <- c();
-					if(j < n) {
-						pt <- pts[[j]];
-						pts_ <- pts[c((j+1):n)];
-						bool <- lapply(pts_, function(y) {
-							return(near(pt, y));
-						});
-						e <- pos0 + j + which(unlist(bool));
-					}
-					if(length(e) == 0) e <- c(NA);
-					return(e);
-				});
-			}
+			edges <- lapply(c(1:n), function(j) {
+				e <- c();
+				if(j < n) {
+					pt <- pts[[j]];
+					pts_ <- pts[c((j+1):n)];
+					bool <- lapply(pts_, function(y) {
+						return(near(pt, y));
+					});
+					e <- pos0 + j + which(unlist(bool));
+				}
+				if(length(e) == 0) e <- c(NA);
+				return(e);
+			});
 			chunk[[edgesname]] <- edges;
 			tib[i, chunkname][[1]][[1]] <- chunk;
 			pos0 <- pos0 + n;
 		}
 
 		# Erzeuge Kluster aus Kanten.
-		tib <- unnest(tib);
+		tib <- tib %>% unnest();
 		clusters <- generateclasses(tib[[edgesname]], min_cluster_size);
 		ind <- which(!is.na(clusters));
 		clusters <- clusters[ind];
 		tib <- tib[ind, ] %>% select(-c(edgesname));
 		data <- tib %>% add_column(!!(clustername) := clusters);
-
-		if(split) data <- group_by_at(data, c(group_by, clustername)); #%>% nest(.key=!!(dataname);
 	}
+
+	if(split && !do_summary) data <- group_by_at(data, c(group_by, clustername)); #%>% nest(.key=!!(dataname);
 
 	return(data);
 };
