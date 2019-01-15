@@ -9,27 +9,29 @@ cluster(data, ...)
 \arguments{
 \item{df}{Tibble/Dataframe to be clustered. Method also possible with vectors.}
 
-\item{groupby}{Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
+\item{by}{string vector. Specifies the column(s) for geometric data, according to which the clusters are to be built.}
 
-\item{by}{Specifies the column(s) for geometric data, according to which the clusters are to be built.}
+\item{filter.by}{string vector. Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
 
-\item{near}{A function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
+\item{near}{function. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
 
-\item{min.dist}{Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.}
+\item{min.dist}{a real number. Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.}
 
-\item{max.dist}{Defaults to \code{Inf}. If the default manhattan metric is used for \code{near}, this is the maximum tolerated distance between geometric data.}
+\item{max.dist}{a real number. Defaults to \code{Inf}. If the default manhattan metric is used for \code{near}, this is the maximum tolerated distance between geometric data.}
 
-\item{strict}{Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
+\item{strict}{boolean. Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
-\item{clustername}{Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
+\item{clustername}{string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
-\item{min.size}{Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
+\item{min.size}{a natural number. Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
-\item{split}{Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
+\item{split}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
 
-\item{is.linear}{Defaults to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
+\item{is.linear}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
 
-\item{is.disjoint}{Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE}, then the clusters must occupy disjoint intervals.}
+\item{is.disjoint}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE}, then the clusters must occupy disjoint intervals.}
+
+\item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
 }
 \description{
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
@@ -38,8 +40,9 @@ This package contains methods, which enables clustering in dataframes. Particula
 \code{cluster(df, ...)}
 }
 \examples{
-gene \%>\% cluster(groupby=c('gene','actve'), by='position', dist=400, strict=TRUE, clustername='tag');
-protein3d \%>\% cluster(groupby='celltype', by=c('x','y','z'), dist=2.5,);
+gene \%>\% cluster(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=FALSE, is.linear=TRUE, is.disjoint=TRUE, summary=TRUE);
+protein3d \%>\% cluster(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, clustername='segment');
+soil_data \%>\% cluster(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, clustername='clump');
 }
 \keyword{cluster}
 \keyword{clustering}

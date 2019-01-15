@@ -7,7 +7,7 @@
 summarise(tib, ...)
 }
 \arguments{
-\item{tib}{Tibble data which has been grouped.}
+\item{tib}{tibble data which has been grouped.}
 }
 \description{
 Provides customisable summary method tailored for clustering.

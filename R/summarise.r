@@ -3,7 +3,7 @@
 #' Provides customisable summary method tailored for clustering.
 #'
 #' \code{summarise(tib, ...)}
-#' @param tib Tibble data which has been grouped.
+#' @param tib tibble data which has been grouped.
 #' @examples tib %>% summarise(concentration=mean, names=c('set',';'), attributes=c('list',';'));
 #' @export summarise
 #' @keywords cluster summarise
