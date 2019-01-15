@@ -62,6 +62,7 @@ cluster <- function(data, ...) {
 	if(!is.numeric(min_cluster_size)) min_cluster_size <- 0;
 	if(!is.numeric(d_min)) d_min <- 0;
 	if(!is.numeric(d_max)) d_max <- Inf;
+	if(!is.logical(strict)) strict <- FALSE;
 	if(!is.function(near)) {
 		if(!is.character(near)) near <- 'Manhattan';
 		if(near == 'Euclidean') {
@@ -78,7 +79,6 @@ cluster <- function(data, ...) {
 			}
 		}
 	}
-	if(!is.logical(strict)) strict <- FALSE;
 	if(!is.logical(split) || !do_summary) split <- FALSE;
 
 
