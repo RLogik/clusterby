@@ -131,7 +131,6 @@ cluster <- function(data, ...) {
 	if(is_linear && is_disjoint) {
 		data <- data[order(data[[by]], data[[clustername]]), ];
 		n <- nrow(data);
-		print(n);
 		if(n > 0) {
 			clusters <- data[[clustername]];
 			cl_curr <- clusters[1];
@@ -148,7 +147,6 @@ cluster <- function(data, ...) {
 				data[i, clustername] <<- cl_replace;
 				return(TRUE);
 			});
-			print(ind);
 			data <- data[ind, ];
 		}
 	}
