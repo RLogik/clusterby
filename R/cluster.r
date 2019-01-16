@@ -72,21 +72,36 @@ clusterdataframe <- setRefClass('clusterdataframe',
 			)) .self[[key]] <- tibble::as_tibble(list());
 			.self$isclustered <- FALSE;
 		},
-		getoriginal = function() {
-			return(.self[['data']]);
-		},
-		getclusters = function(...) {
-			if(!.self$isclustered) return(tibble::as_tibble(list()));
+		get = function(key, ...) {
+			if(key %in% c(
+				'cluster.name',
+				'cluster.by',
+				'cluster.group.by',
+				'cluster.keep'
+			)) return(.self[[key]]);
 
-			INPUTVARS = list(...);
-			summary <- INPUTVARS[['summary']];
-			if(!is.logical(summary)) summary <- FALSE;
-			if(summary) return(.self[['cluster.summary']]);
-			return(.self[['cluster.data']])
+			if(key == 'original') return(.self[['data']]);
+
+			if(key == 'clusters') {
+				if(!.self$isclustered) return(tibble::as_tibble(list()));
+
+				INPUTVARS = list(...);
+				summary <- INPUTVARS[['summary']];
+				if(!is.logical(summary)) summary <- FALSE;
+				if(summary) return(.self[['cluster.summary']]);
+				return(.self[['cluster.data']])
+			}
+
+			return(NULL);
+		},
+		groupby = function() {
+			if(!.self$isclustered) return(tibble::as_tibble(list()));
+			return(.self[['cluster.data']] %>% group_by_at(.self[['cluster.name']]));
 		},
 		build = function(...) {
 			obj <- .self$data %>% buildclusters____(...);
 			for(key in c(
+				'cluster.name',
 				'cluster.by',
 				'cluster.group.by',
 				'cluster.keep',
@@ -102,22 +117,59 @@ clusterdataframe <- setRefClass('clusterdataframe',
 			summcols <- names(INPUTVARS);
 
 			tib <- .self[['cluster.data']];
-			cols <- names(tib);
-			summcols <- summcols[which(summcols %in% cols)];
+			clustername <- .self[['cluster.name']];
+			group_by <- .self[['cluster.group.by']];
+			keep <- .self[['cluster.keep']];
+			# cols <- names(tib);
+			# if(length(keep) == 0) keep <- cols;
+			keep <- unique(c(clustername, group_by, keep));
+			keep <- keep[which(!(keep %in% summcols))];
 
-			method <- list();
+			instructions <- list();
+			for(col in keep) instructions[[col]] <- list(
+				'col'=col,
+				'method'='pick'
+			);
+
 			for(col in summcols) {
 				s <- INPUTVARS[[col]];
-				opt <- s[1];
-				if(is.function(opt)) {
+				instructions[[col]] <- s;
+				if(is.list(s)) next;
+				instructions[[col]] <- list(
+					'col'=col,
+					'method'=s
+				);
+			}
+
+			method <- list();
+			k <- 1;
+			fnames <- c();
+			colnames <- c();
+
+			for(col in c(keep,summcols)) {
+				if(col == clustername) next;
+
+				s <- instructions[[col]];
+				m <- s[['method']];
+
+				if(is.function(m)) {
 					f <- opt;
-				} else if(is.character(opt)) {
-					if(opt == 'set') {
-						sep = ','; if(length(s) > 1) sep = s[2];
-						f <- function(x) {return(paste0('[',paste(unique(x), collapse=','),']'));};
-					} else if(opt == 'list') {
-						sep = ','; if(length(s) > 1) sep = s[2];
-						f <- function(x) {return(paste0('[',paste(x, collapse=','),']'));};
+				} else if(is.character(m)) {
+					opt <- m[1];
+					if(opt == 'pick') {
+						f <- function(x) {return(x[1]);};
+					} else if(opt %in% c('set','list')) {
+						sep <- ',';
+						if('sep' %in% names(s)) {
+							sep <- s[['sep']];
+						} else if(length(m) > 1) {
+							sep <- m[2];
+						}
+						if(opt == 'set') {
+							f <- function(x) {return(paste0('[',paste(unique(x), collapse=sep),']'));};
+						} else if(opt == 'list') {
+							f <- function(x) {return(paste0('[',paste(x, collapse=sep),']'));};
+						}
 					} else if(opt == 'length') {
 						f <- length;
 					} else if(opt == 'min') {
@@ -133,35 +185,22 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					} else if(opt == 'sd') {
 						f <- function(x) {return(sd(x, na.rm=TRUE));};
 					} else {
-						f <- function(x) {return(NA);};
+						# f <- function(x) {return(NA);};
+						next;
 					}
+				} else {
+					next;
 				}
-				method[[col]] <- f;
+
+				method[[k]] <- f;
+				vnames <- paste(s[['col']], collapse=',');
+				fnames[k] <- paste0('method[[',k,']](',vnames,')');
+				colnames[k] <- col;
+				k <- k + 1;
 			}
 
-			clustername <- .self[['cluster.name']];
-			by <- .self[['cluster.by']];
-			keep <- .self[['cluster.keep']];
-			group_by <- .self[['cluster.group.by']];
+			tib_summ <- .self$groupby() %>% dplyr::summarise_(.dots=setNames(fnames, colnames));
 
-			keep <- c(clustername, group_by, keep);
-			tib_summ <- tibble::as_tibble();
-			for(col in c(keep, summcols)) tib_summ <- tib_summ %>% tibble::add_column(!!(col):=c(NA));
-			tib_summ <- tib_summ[c(), ];
-
-			clusterIds <- tib[[clustername]];
-			j <- 1;
-			for(cl in unique(clusterIds)) {
-				ind <- which(tib[[clustername]] == cl);
-				cluster <- tib[ind, ];
-				i0 <- ind[1];
-				for(col in keep) tib_summ[j, col] <- tib[i0, col];
-				for(col in summcols) {
-					f <- method[[col]];
-					tib_summ[j, col] <- cluster[[col]] %>% f;
-				}
-				j <- j + 1 ;
-			}
 			return(tib_summ);
 		}
 	)
@@ -170,7 +209,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 
 
 
-buildclusters____ <- function(data, ...) {
+buildclusters____ <- function(tib, ...) {
 	INPUTVARS <- list(...);
 	VARNAMES <- names(INPUTVARS);
 
@@ -188,6 +227,8 @@ buildclusters____ <- function(data, ...) {
 	presort <- INPUTVARS[['presort']];
 	as_interval <- INPUTVARS[['as.interval']];
 
+	tib <- tibble::as_tibble(tib);
+	cols <- names(tib);
 
 	dim_by <- length(by);
 	if(!is.vector(group_by)) group_by <- c();
@@ -225,8 +266,6 @@ buildclusters____ <- function(data, ...) {
 
 
 	## Definiere Keep-Spalten
-	tib <- tibble::as_tibble(data);
-	cols <- names(tib);
 	keep_summ <- unique(c(group_by, keep));
 	if(!('keep' %in% VARNAMES)) keep <- cols;
 	keep <- unique(c(group_by, by, keep));
@@ -416,8 +455,6 @@ buildclusters____ <- function(data, ...) {
 	}
 
 
-
-
 	## Reinige Typen.
 	for(col in names(types$data)) {
 		typ <- types$data[[col]];
@@ -439,10 +476,10 @@ buildclusters____ <- function(data, ...) {
 	}
 
 	return(list(
+		cluster.name=clustername,
 		cluster.by=by,
 		cluster.group.by=group_by,
 		cluster.keep=keep_orig,
-		cluster.name=clustername,
 		cluster.data=tib,
 		cluster.summary=tib_summ
 	));
