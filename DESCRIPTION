@@ -7,6 +7,7 @@ Depends: R (>= 3.4.0)
 License: open source.
 Encoding: UTF-8
 Imports:
-	tidyverse
+	tidyverse,
+	jsonlite
 LazyData: true
 RoxygenNote: 6.1.1

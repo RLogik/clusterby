@@ -158,18 +158,10 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					opt <- m[1];
 					if(opt == 'pick') {
 						f <- function(x) {return(x[1]);};
-					} else if(opt %in% c('set','list')) {
-						sep <- ',';
-						if('sep' %in% names(s)) {
-							sep <- s[['sep']];
-						} else if(length(m) > 1) {
-							sep <- m[2];
-						}
-						if(opt == 'set') {
-							f <- function(x) {return(paste0('[',paste(unique(x), collapse=sep),']'));};
-						} else if(opt == 'list') {
-							f <- function(x) {return(paste0('[',paste(x, collapse=sep),']'));};
-						}
+					} else if(opt == 'set') {
+						f <- function(x) {return(jsonlite::toJSON(unique(x)));};
+					} else if(opt == 'list') {
+						f <- jsonlite::toJSON;
 					} else if(opt == 'length') {
 						f <- length;
 					} else if(opt == 'min') {
