@@ -25,17 +25,19 @@ cluster(data, ...)
 
 \item{cluster.name}{string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
 
-\item{min.size}{a natural number. Defaults to \code{0}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
+\item{min.size}{a natural number. Defaults to \code{1}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
 \item{split}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
 
-\item{is.linear}{boolean. Defaults to \code{TRUE}, if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
+\item{is.lexical}{boolean. Defaults to \code{TRUE} if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
 
-\item{is.disjoint}{boolean. Defaults to \code{TRUE}, if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE}, then the clusters must occupy disjoint intervals.}
+\item{is.disjoint}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy disjoint intervals.}
 
-\item{presort}{boolean. Defaults to \code{TRUE}. If \code{TRUE} and \code{is.linear=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}.}
+\item{presort}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If \code{TRUE} and \code{is.lexical=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}. Regardless of this setting, in the non-summary mode, all data will be reordered to correspond to the sequence of the input data.}
 
-\item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.linear=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
+\item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
+
+\item{as.interval}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{is.disjoint=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.}
 }
 \description{
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
@@ -44,7 +46,7 @@ This package contains methods, which enables clustering in dataframes. Particula
 \code{cluster(df, ...)}
 }
 \examples{
-gene \%>\% cluster(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=FALSE, is.linear=TRUE, is.disjoint=TRUE, summary=TRUE);
+gene \%>\% cluster(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=FALSE, is.lexical=TRUE, is.disjoint=TRUE, summary=TRUE);
 protein3d \%>\% cluster(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
 soil_data \%>\% cluster(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
 }
