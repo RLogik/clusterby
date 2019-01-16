@@ -166,7 +166,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 							sep <- m[2];
 						}
 						brackets <- FALSE;
-						if('sep' %in% names(s)) {
+						if('brackets' %in% names(s)) {
 							brackets <- s[['brackets']];
 						} else if(length(m) > 2) {
 							brackets <- m[3];
@@ -179,9 +179,9 @@ clusterdataframe <- setRefClass('clusterdataframe',
 							}
 						} else {
 							if(opt == 'set') {
-								f <- function(x) {return(paste(unique(x), collapse=sep)));};
+								f <- function(x) {return(paste(unique(x), collapse=sep));};
 							} else if(opt == 'list') {
-								f <- function(x) {return(paste(x, collapse=sep)));};
+								f <- function(x) {return(paste(x, collapse=sep));};
 							}
 						}
 					} else if(opt == 'json') {
