@@ -290,7 +290,7 @@ buildclusters____ <- function(data, ...) {
 		summcols <- sapply(summcols, pref)
 		warning(paste0("One or more of the columns ",paste(summcols, sep=', ')," is currently occupied. Summary columns will be appropriately renamed to ",paste(summcols, sep=', '),". In future you may wish to rename your columns before using the `clusterby` methods."));
 	}
-	tib_summ <- (tib %>% select(keep_summ))[c(1), ];
+	tib_summ <- (tib %>% dplyr::select(keep_summ))[c(1), ];
 	for(col in c(clustername, summcols)) tib_summ <- tib_summ %>% tibble::add_column(!!(col):=c(NA));
 	tib_summ <- tib_summ[c(), ];
 
