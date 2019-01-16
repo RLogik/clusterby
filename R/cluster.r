@@ -40,6 +40,8 @@ clustereddata <- setRefClass('clustereddata',
 		isclustered='logical',
 		cluster.name='character',
 		cluster.group.by='ANY',
+		cluster.by='ANY',
+		cluster.keep='ANY',
 		data='ANY',
 		cluster.data='ANY',
 		cluster.summary='ANY'
@@ -53,18 +55,27 @@ clustereddata <- setRefClass('clustereddata',
 				.self$data <- tibble::as_tibble(list());
 			}
 
-			.self[['cluster.data']] <- tibble::as_tibble(list());
-			.self[['cluster.summary']] <- tibble::as_tibble(list());
 			.self[['cluster.name']] <- 'cluster';
-			.self[['cluster.group.by']] <- c();
+			for(key in c(
+				'cluster.by',
+				'cluster.group.by',
+				'cluster.keep'
+			)) .self[[key]] <- c();
+			for(key in c(
+				'cluster.data',
+				'cluster.summary'
+			)) .self[[key]] <- tibble::as_tibble(list());
 			.self$isclustered <- FALSE;
 		},
 		buildclusters = function(...) {
 			obj <- .self$data %>% buildclusters____(...);
-			.self[['cluster.name']] <- obj[['cluster.name']];
-			.self[['cluster.group.by']] <- obj[['cluster.group.by']];
-			.self[['cluster.data']] <- obj[['cluster.data']];
-			.self[['cluster.summary']] <- obj[['cluster.summary']];
+			for(key in c(
+				'cluster.by',
+				'cluster.group.by',
+				'cluster.keep',
+				'cluster.data',
+				'cluster.summary'
+			)) .self[[key]] <- obj[[key]];
 			.self$isclustered <- TRUE;
 		},
 		getclusters = function(...) {
@@ -121,9 +132,13 @@ clustereddata <- setRefClass('clustereddata',
 			}
 
 			clustername <- .self[['cluster.name']];
+			by <- .self[['cluster.by']];
+			keep <- .self[['cluster.keep']];
 			group_by <- .self[['cluster.group.by']];
+
+			keep <- c(clustername, group_by, keep);
 			tib_summ <- tibble::as_tibble();
-			for(col in c(group_by, clustername, summcols)) tib_summ <- tib_summ %>% add_column(!!(col):=c(NA));
+			for(col in c(keep, summcols)) tib_summ <- tib_summ %>% tibble::add_column(!!(col):=c(NA));
 			tib_summ <- tib_summ[c(), ];
 
 			clusterIds <- tib[[clustername]];
@@ -132,7 +147,7 @@ clustereddata <- setRefClass('clustereddata',
 				ind <- which(tib[[clustername]] == cl);
 				cluster <- tib[ind, ];
 				i0 <- ind[1];
-				for(col in c(group_by, clustername)) tib_summ[j, col] <- tib[i0, col];
+				for(col in keep) tib_summ[j, col] <- tib[i0, col];
 				for(col in summcols) {
 					f <- method[[col]];
 					tib_summ[j, col] <- cluster[[col]] %>% f;
@@ -169,6 +184,7 @@ buildclusters____ <- function(data, ...) {
 	dim_by <- length(by);
 	if(!is.vector(group_by)) group_by <- c();
 	if(!is.vector(keep)) keep <- c();
+	keep_orig <- keep;
 	if(!is.logical(is_lexical)) is_lexical <- (dim_by == 1);
 	if(!is.logical(is_disjoint)) is_disjoint <- is_lexical;
 	if(!is.logical(presort)) presort <- is_lexical;
@@ -203,13 +219,9 @@ buildclusters____ <- function(data, ...) {
 	## Definiere Keep-Spalten
 	tib <- tibble::as_tibble(data);
 	cols <- names(tib);
-	if('keep' %in% VARNAMES) {
-		keep_summ <- unique(c(group_by, keep));
-		keep <- unique(c(group_by, by, keep));
-	} else {
-		keep_summ <- group_by;
-		keep <- cols;
-	}
+	keep_summ <- unique(c(group_by, keep));
+	if(!('keep' %in% VARNAMES)) keep <- cols;
+	keep <- unique(c(group_by, by, keep));
 
 
 	## Erstellung von Spaltennamen (Klusterspalte + Pufferspalte):
@@ -219,58 +231,86 @@ buildclusters____ <- function(data, ...) {
 	indexname <- uniquecolumnname____('index', c(cols, clustername));
 
 
+	## Definiere Typen von Spalten
+	types <- list(
+		data=list(),
+		summary=list()
+	);
+	if(as_interval) {
+		types$summary <- list(
+			'nstart'='integer',
+			'nend'='integer',
+			'size'='integer',
+			'pstart'='double',
+			'pend'='double',
+			'distance'='double'
+		)
+	} else if(is_lexical) {
+		types$summary <- list(
+			'indices'='character',
+			'size'='integer',
+			'positions'='character'
+		);
+	} else {
+		types$summary <- list(
+			'indices'='character',
+			'size'='integer'
+		);
+	}
+	summcols <- names(types$summary);
+	types$data[[clustername]] <- 'integer';
+	types$summary[[clustername]] <- 'integer';
+
+
 	## Indexnamen bevor Verarbeitung speichern.
-	tib <- tib %>% add_column(!!(indexname):=c(1:n), !!(clustername):=rep(0, n));
+	tib <- tib %>% tibble::add_column(!!(indexname):=c(1:n), !!(clustername):=rep(0, n));
 	## Indizes für Präsortierung hinzufügen.
 	groupname <- uniquecolumnname____('group', c(cols, clustername));
 	tib <- tib %>% group_by_at(group_by) %>% nest(.key=!!(chunkname));
 	Ng <- nrow(tib);
-	tib <- tib %>% add_column(!!(groupname):=c(1:Ng));
+	tib <- tib %>% tibble::add_column(!!(groupname):=c(1:Ng));
 	tib <- tib %>% unnest();
 	## ursp. Reihenfolge wiederherstellen.
-	tib <- tib %>% arrange_(indexname);
+	tib <- tib %>% dplyr::arrange_(indexname);
 
 
 	## Initialisiere Summary-Tibble
-	if(as_interval) {
-		summcols <- c('pstart','pend','distance','nstart','nend','size');
-	} else {
-		summcols <- c('indices','size');
-		if(is_lexical) summcols <- c(summcols,'positions');
-	}
 	strich <- '';
 	pref <- function(x) {return(paste0(strich, x));};
-	if(max(summcols %in% keep)) {
-		while(max(sapply(summcols, pref) %in% keep)) strich <- paste0('_',strich);
+	if(max(summcols %in% keep_summ)) {
+		while(max(sapply(summcols, pref) %in% keep_summ)) strich <- paste0('_',strich);
 		summcols <- sapply(summcols, pref)
 		warning(paste0("One or more of the columns ",paste(summcols, sep=', ')," is currently occupied. Summary columns will be appropriately renamed to ",paste(summcols, sep=', '),". In future you may wish to rename your columns before using the `clusterby` methods."));
 	}
-	tib_summ <- tibble::as_tibble();
-	for(col in c(keep, summcols)) tib_summ <- tib_summ %>% add_column(!!(col):=c(NA));
+	tib_summ <- (tib %>% select(keep_summ))[c(1), ];
+	for(col in c(clustername, summcols)) tib_summ <- tib_summ %>% tibble::add_column(!!(col):=c(NA));
 	tib_summ <- tib_summ[c(), ];
-
 
 	## HAUPTMETHODE
 	if(is_lexical) {
-		if(presort) tib <- tib %>% arrange_(by);
-		if(!is_disjoint) tib <- tib %>% arrange_(groupname);
+		if(presort) tib <- tib %>% dplyr::arrange_(by);
+		if(!is_disjoint) tib <- tib %>% dplyr::arrange_(groupname);
 		tib_ <- tib;
 
 		i0 <- 1;
 		cl <- 1;
 		sel <- c();
-		pt_to_json <- function(i) {
-			return(paste0('[',paste(tib[i, by], collapse=','),']'));
+		pt_to_json <- function(x) {
+			vals <- sapply(x, function(val) {
+				if(is.character(val)) val <- paste0('"',val,'"');
+				return(val);
+			});
+			return(paste0('[',paste(vals, collapse=','),']'));
 		};
 		while(i0 <= n) {
 			## Iteriere bis Gruppe sich ändert, oder nächster Punkt zu weit weg vom Kluster liegt.
 			i1 <- i0 + 1;
-			pt <- tib[i0, by][[1]];
-			g <- tib[i0, groupname][[1]]
+			g <- tib[i0, groupname][[1]];
+			pt <- tib[i0, by];
 			pt_ <- pt;
 			while(i1 <= n) {
-				g_ <- tib[i1, groupname][[1]]
-				pt__ <- tib[i1, by][[1]];
+				g_ <- tib[i1, groupname][[1]];
+				pt__ <- tib[i1, by];
 				if(!(g == g_) || !near(pt_, pt__)) break;
 				pt_ <- pt__;
 				i1 <- i1 +  1;
@@ -280,25 +320,33 @@ buildclusters____ <- function(data, ...) {
 			## Fasse als Kluster zusammen.
 			sz <- i1-i0+1;
 			if(sz >= min_cluster_size) {
+				tib_summ[cl, clustername] <- cl;
 				for(col in keep) tib_summ[cl, col] <- tib[i0, col];
 				if(as_interval) {
 					dp <- metric_lex(pt, pt_);
 					if(dim_by > 1) {
-						pt <- pt_to_json(i0);
-						pt_ <- pt_to_json(i1);
+						pt <- pt_to_json(tib[i0, by]);
+						pt_ <- pt_to_json(tib[i1, by]);
 					}
-					tib_summ[cl, summcols] <- c(pt, pt_, dp, i0, i1, sz);
+					tib_summ[cl, summcols[1]] <- i0;
+					tib_summ[cl, summcols[2]] <- i1;
+					tib_summ[cl, summcols[3]] <- sz;
+					tib_summ[cl, summcols[4]] <- pt;
+					tib_summ[cl, summcols[5]] <- pt_;
+					tib_summ[cl, summcols[6]] <- dp;
 				} else {
 					idx <- tib[c(i0:i1), indexname][[1]];
 					s <- order(idx);
-					if(dim_by == 1) {
-						pts <- tib[c(i0:i1), by][[1]];
-					} else {
-						pts <- sapply(c(i0:i1), pt_to_json);
-					}
 					idx <- paste0('[',paste(idx[s], collapse=','),']');
-					pts <- paste0('[',paste(pts[s], collapse=','),']');
-					tib_summ[cl, summcols] <- c(idx, sz, pts);
+					if(dim_by == 1) {
+						pts <- pt_to_json(tib[c(i0:i1)[s], by]);
+					} else {
+						pts <- sapply(c(i0:i1)[s], function(i) {return(pt_to_json(tib[i, by]));});
+						pts <- paste0('[',paste(pts, collapse=','),']');
+					}
+					tib_summ[cl, summcols[1]] <- idx;
+					tib_summ[cl, summcols[2]] <- sz;
+					tib_summ[cl, summcols[3]] <- pts;
 				}
 
 				dsel <- c(i0:i1);
@@ -310,7 +358,7 @@ buildclusters____ <- function(data, ...) {
 			i0 <- i1 + 1;
 		}
 	} else {
-		tib <- tib %>% arrange_(groupname);
+		tib <- tib %>% dplyr::arrange_(groupname);
 		cl <- 1;
 		sel <- c();
 		for(g in c(1:Ng)) {
@@ -344,11 +392,13 @@ buildclusters____ <- function(data, ...) {
 				if(is.na(cl_)) next;
 				dsel <- which(clusters==cl_);
 				i0 <- dsel[1];
+				tib_summ[cl_, clustername] <- cl_;
 				for(col in keep) tib_summ[cl_, col] <- chunk[i0, col];
 				idx <- sort(chunk[dsel, indexname][[1]]);
 				idx <- paste0('[',paste(idx, collapse=','),']');
 				sz <- length(dsel);
-				tib_summ[cl_, summcols] <- c(idx, sz);
+				tib_summ[cl_, summcols[1]] <- idx;
+				tib_summ[cl_, summcols[2]] <- sz;
 			}
 
 			dsel <- which(!is.na(clusters));
@@ -358,17 +408,32 @@ buildclusters____ <- function(data, ...) {
 	}
 
 
+
+
+	## Reinige Typen.
+	for(col in names(types$data)) {
+		typ <- types$data[[col]];
+		if(typ == 'integer') tib[ , col] <- as.integer(tib[[col]]);
+	}
+	for(col in names(types$summary)) {
+		typ <- types$summary[[col]];
+		if(typ == 'integer') tib_summ[ , col] <- as.integer(tib_summ[[col]]);
+	}
+
+
 	## Reihenfolge wiederherstellen und Spalten filtrieren.
-	# tib_summ <- tib_summ %>% arrange_(group_by) %>% select(c(keep, summcols));
-	tib <- tib[sel, ] %>% arrange_(indexname) %>% select(c(keep, clustername));
-	tib_summ <- tib_summ %>% select(c(keep, summcols));
+	# tib_summ <- tib_summ %>% dplyr::arrange_(group_by) %>% dplyr::select(keep, summcols));
+	tib <- tib[sel, ] %>% dplyr::arrange_(indexname) %>% dplyr::select(c(clustername, keep));
+	tib_summ <- tib_summ %>% dplyr::select(clustername, keep_summ, summcols);
 	if(!as_interval) {
 		names(tib_summ)[which(names(tib_summ)==summcols[1])] <- indexname;
-		if(is_lexical) names(tib_summ)[which(names(tib_summ)==summcols[3])] <- by;
+		if(is_lexical && dim_by == 1) names(tib_summ)[which(names(tib_summ)==summcols[3])] <- by;
 	}
 
 	return(list(
+		cluster.by=by,
 		cluster.group.by=group_by,
+		cluster.keep=keep_orig,
 		cluster.name=clustername,
 		cluster.data=tib,
 		cluster.summary=tib_summ
