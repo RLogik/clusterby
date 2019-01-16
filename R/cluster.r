@@ -2,10 +2,11 @@
 #'
 #' This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
 #'
-#' \code{cd <- clusterby::clustereddata(df)}
-#' \code{cd$buildclusters(...)}
-#' \code{cd$getclusters(...)}
+#' \code{cd <- clusterby::clusterdataframe(df)}
+#' \code{cd$build(...)}
 #' \code{cd$summarise(...)}
+#' \code{cd$getoriginal()}
+#' \code{cd$getclusters(...)}
 #'
 #' @param df Tibble/Dataframe to be clustered. Method also possible with vectors.
 #' @param by string vector. Specifies the column(s) for geometric data, according to which the clusters are to be built.
@@ -23,10 +24,14 @@
 #' @param presort boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If \code{TRUE} and \code{is.lexical=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}. Regardless of this setting, in the non-summary mode, all data will be reordered to correspond to the sequence of the input data.
 #' @param summary boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).
 #' @param as.interval boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{is.disjoint=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.
-#' @export clustereddata
-#' @examples cd <- clusterby::clustereddata(gene); cd$buildclusters(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, is.disjoint=TRUE);
-#' @examples cd <- clusterby::clustereddata(protein3d); cd$buildclusters(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
-#' @examples cd <- clusterby::clustereddata(soil_data); cd$buildclusters(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
+#' @export clusterdataframe
+#' @examples cdf <- clusterby::clusterdataframe(gene); cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, is.disjoint=TRUE);
+#' @examples cdf <- clusterby::clusterdataframe(protein3d); cdf$build(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
+#' @examples cdf <- clusterby::clusterdataframe(soil_data); cdf$build(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
+#' @examples data <- cdf$getclusters();
+#' @examples tib <- cdf$getclusters();
+#' @examples tib <- cdf$getclusters(summary=FALSE);
+#' @examples tib_summ <- cdf$getclusters(summary=TRUE);
 #' @keywords cluster clustering gene
 # #' @param tib tibble data which has been grouped.
 # #' @examples tib %>% clusterby::clusterwise(concentration=mean, names=c('set',';'), attributes=c('list',';'));
@@ -35,7 +40,7 @@
 
 
 
-clustereddata <- setRefClass('clustereddata',
+clusterdataframe <- setRefClass('clusterdataframe',
 	fields = list(
 		isclustered='logical',
 		cluster.name='character',
@@ -67,16 +72,8 @@ clustereddata <- setRefClass('clustereddata',
 			)) .self[[key]] <- tibble::as_tibble(list());
 			.self$isclustered <- FALSE;
 		},
-		buildclusters = function(...) {
-			obj <- .self$data %>% buildclusters____(...);
-			for(key in c(
-				'cluster.by',
-				'cluster.group.by',
-				'cluster.keep',
-				'cluster.data',
-				'cluster.summary'
-			)) .self[[key]] <- obj[[key]];
-			.self$isclustered <- TRUE;
+		getoriginal = function() {
+			return(.self[['data']]);
 		},
 		getclusters = function(...) {
 			if(!.self$isclustered) return(tibble::as_tibble(list()));
@@ -86,6 +83,17 @@ clustereddata <- setRefClass('clustereddata',
 			if(!is.logical(summary)) summary <- FALSE;
 			if(summary) return(.self[['cluster.summary']]);
 			return(.self[['cluster.data']])
+		},
+		build = function(...) {
+			obj <- .self$data %>% buildclusters____(...);
+			for(key in c(
+				'cluster.by',
+				'cluster.group.by',
+				'cluster.keep',
+				'cluster.data',
+				'cluster.summary'
+			)) .self[[key]] <- obj[[key]];
+			.self$isclustered <- TRUE;
 		},
 		summarise = function(...) {
 			if(!.self$isclustered) return(tibble::as_tibble(list()));
