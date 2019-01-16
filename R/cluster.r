@@ -87,12 +87,12 @@ cluster <- function(data, ...) {
 	tib <- tibble::as_tibble(data);
 	cols <- names(tib);
 	if('keep' %in% VARNAMES) {
-		keep <- unique(c(group_by, keep));
+		keep <- unique(c(group_by, by, keep));
 	} else {
 		if(do_summary) {
 			keep <- group_by;
 		} else {
-			keep <- unique(c(group_by, cols));
+			keep <- cols;
 		}
 	}
 
