@@ -1,6 +1,6 @@
 Package: clusterby
 Title: Data Clustering
-Version: 3.0.2
+Version: 3.0.3
 Authors@R: person("R", "Logik", email = "r.bitlogik@gmail.com", role = c("aut", "cre"))
 Description: Data Clustering for data frames. Pregroup data, and form maximal clusters based on a column with geometric data.
 Depends: R (>= 3.4.0)
