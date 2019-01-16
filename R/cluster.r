@@ -150,65 +150,68 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				if(col == clustername) next;
 
 				s <- instructions[[col]];
-				m <- s[['method']];
-
-				if(is.function(m)) {
-					f <- opt;
-				} else if(is.character(m)) {
-					opt <- m[1];
-					if(opt == 'pick') {
-						f <- function(x) {return(x[1]);};
-					} else if(opt %in% c('set','list')) {
-						sep <- ';';
-						if('sep' %in% names(s)) {
-							sep <- s[['sep']];
-						} else if(length(m) > 1) {
-							sep <- m[2];
-						}
-						brackets <- FALSE;
-						if('brackets' %in% names(s)) {
-							brackets <- s[['brackets']];
-						} else if(length(m) > 2) {
-							brackets <- m[3];
-						}
-						if(brackets) {
-							if(opt == 'set') {
-								f <- function(x) {return(paste0('[',paste(unique(x), collapse=sep),']'));};
-							} else if(opt == 'list') {
-								f <- function(x) {return(paste0('[',paste(x, collapse=sep),']'));};
+				f <- (function(s, col) {
+					f <- NULL;
+					m <- s[['method']];
+					if(is.function(m)) {
+						f <- opt;
+					} else if(is.character(m)) {
+						opt <- m[1];
+						if(opt == 'pick') {
+							f <- function(x) {return(x[1]);};
+						} else if(opt %in% c('set','list')) {
+							sep <- ';';
+							if('sep' %in% names(s)) {
+								sep <- s[['sep']];
+							} else if(length(m) > 1) {
+								sep <- m[2];
 							}
+							brackets <- FALSE;
+							if('brackets' %in% names(s)) {
+								brackets <- s[['brackets']];
+							} else if(length(m) > 2) {
+								brackets <- m[3];
+							}
+							if(brackets) {
+								if(opt == 'set') {
+									f <- function(x) {return(paste0('[',paste(unique(x), collapse=sep),']'));};
+								} else if(opt == 'list') {
+									f <- function(x) {return(paste0('[',paste(x, collapse=sep),']'));};
+								}
+							} else {
+								if(opt == 'set') {
+									f <- function(x) {return(paste(unique(x), collapse=sep));};
+								} else if(opt == 'list') {
+									f <- function(x) {return(paste(x, collapse=sep));};
+								}
+							}
+						} else if(opt == 'json') {
+							f <- jsonlite::toJSON;
+						} else if(opt == 'json:set') {
+							f <- function(x) {return(jsonlite::toJSON(unique(x)));};
+						} else if(opt == 'length') {
+							f <- length;
+						} else if(opt == 'min') {
+							f <- function(x) {return(min(x, na.rm=TRUE));};
+						} else if(opt == 'max') {
+							f <- function(x) {return(max(x, na.rm=TRUE));};
+						} else if(opt == 'range') {
+							f <- function(x) {return(paste0('[',paste(c(min(x, na.rm=TRUE), max(x, na.rm=TRUE)), collapse=','),']'));};
+						} else if(opt == 'mean') {
+							f <- function(x) {return(mean(x, na.rm=TRUE));};
+						} else if(opt == 'var') {
+							f <- function(x) {return(var(x, na.rm=TRUE));};
+						} else if(opt == 'sd') {
+							f <- function(x) {return(sd(x, na.rm=TRUE));};
 						} else {
-							if(opt == 'set') {
-								f <- function(x) {return(paste(unique(x), collapse=sep));};
-							} else if(opt == 'list') {
-								f <- function(x) {return(paste(x, collapse=sep));};
-							}
+							# f <- function(x) {return(NA);};
 						}
-					} else if(opt == 'json') {
-						f <- jsonlite::toJSON;
-					} else if(opt == 'json:set') {
-						f <- function(x) {return(jsonlite::toJSON(unique(x)));};
-					} else if(opt == 'length') {
-						f <- length;
-					} else if(opt == 'min') {
-						f <- function(x) {return(min(x, na.rm=TRUE));};
-					} else if(opt == 'max') {
-						f <- function(x) {return(max(x, na.rm=TRUE));};
-					} else if(opt == 'range') {
-						f <- function(x) {return(paste0('[',paste(c(min(x, na.rm=TRUE), max(x, na.rm=TRUE)), collapse=','),']'));};
-					} else if(opt == 'mean') {
-						f <- function(x) {return(mean(x, na.rm=TRUE));};
-					} else if(opt == 'var') {
-						f <- function(x) {return(var(x, na.rm=TRUE));};
-					} else if(opt == 'sd') {
-						f <- function(x) {return(sd(x, na.rm=TRUE));};
-					} else {
-						# f <- function(x) {return(NA);};
-						next;
 					}
-				} else {
-					next;
-				}
+
+					return(f);
+				})(s, col);
+
+				if(is.null(f)) next;
 
 				method[[k]] <- f;
 				vnames <- paste(s[['col']], collapse=',');
