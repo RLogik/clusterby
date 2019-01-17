@@ -125,29 +125,29 @@ clusterdataframe <- setRefClass('clusterdataframe',
 							tib <- .self$summarise(
 								'n.start' = list(col=indexname, method='min'),
 								'n.end' = list(col=indexname, method='max'),
-								'{size}' = list(col=indexname, method='length'),
+								'size' = list(col=indexname, method='length'),
 								'p.start' = list(col=by, method='lex:min', sep=sep, with.keys=with_keys, with.braces=with_braces),
 								'p.end' = list(col=by, method='lex:max', sep=sep, with.keys=with_keys, with.braces=with_braces),
-								'{distance}' = list(col=by, method='lex:range', mode='distance', sep=sep, with.keys=with_keys, with.braces=with_braces)
+								'distance' = list(col=by, method='lex:range', mode='distance', sep=sep, with.keys=with_keys, with.braces=with_braces)
 							);
 						} else {
 							tib <- .self$summarise(
 								'n.start' = list(col=indexname, method='min'),
 								'n.end' = list(col=indexname, method='max'),
-								'{size}' = list(col=indexname, method='length')
+								'size' = list(col=indexname, method='length')
 							);
 						}
 					} else {
 						if(with_pts) {
 							tib <- .self$summarise(
-								'{index}' = list(col=indexname, method='list', sep=sep, with.braces=with_braces),
-								'{size}' = list(col=indexname, method='length'),
-								'{positions}' = list(col=by, method='list:points', sep=sep, with.keys=with_keys, with.braces=with_braces)
+								'index' = list(col=indexname, method='list', sep=sep, with.braces=with_braces),
+								'size' = list(col=indexname, method='length'),
+								'positions' = list(col=by, method='list:points', sep=sep, with.keys=with_keys, with.braces=with_braces)
 							);
 						} else {
 							tib <- .self$summarise(
-								'{index}' = list(col=indexname, method='set', sep=sep, with.braces=with_braces),
-								'{size}' = list(col=indexname, method='length')
+								'index' = list(col=indexname, method='set', sep=sep, with.braces=with_braces),
+								'size' = list(col=indexname, method='length')
 							);
 						}
 					}
@@ -215,6 +215,12 @@ clusterdataframe <- setRefClass('clusterdataframe',
 			keep <- keep[which(!(keep %in% summcols))];
 
 			instructions <- list();
+
+			for(col in keep) instructions[[col]] <- list(
+				'col'=col,
+				'method'='pick'
+			);
+
 			for(col in summcols) {
 				s <- INPUTVARS[[col]];
 				instructions[[col]] <- s;
@@ -224,16 +230,13 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					'method'=s
 				);
 			}
-			for(col in keep) instructions[[col]] <- list(
-				'col'=col,
-				'method'='pick'
-			);
 
 			method <- list();
 			k <- 1;
 			fnames <- c();
 			colnames <- c();
 
+			n <- 0;
 			for(col in c(keep,summcols)) {
 				if(col == clustername) next;
 
@@ -409,12 +412,20 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				colnames[k] <- col;
 				if(col == 'size') k0 <- k;
 				k <- k + 1;
+				n <- n + 1;
 			}
 
-			args <- setNames(fnames, colnames);
-			tib <- .self$groupby(TRUE) %>% dplyr::summarise_(.dots=args);
+			tib <- .self$groupby(TRUE);
+			tib_summ <- list();
+			if(n > 0) {
+				for(k in c(1:n)) {
+					col <- colnames[k];
+					args <- setNames(fnames[k], col);
+					tib_summ[[col]] <- (tib %>% dplyr::summarise_(.dots=args))[[col]];
+				}
+			}
 
-			return(tib);
+			return(tibble::as_tibble(tib_summ));
 		}
 	)
 );
