@@ -62,24 +62,24 @@ clusterdataframe <- setRefClass('clusterdataframe',
 			INPUTVARS = list(...);
 			if(length(INPUTVARS) >= 1) {
 				.self$data <- INPUTVARS[[1]];
-				.self[['data.cols']] <- names(.self$data);
+				.self$data.cols <- names(.self$data);
 			} else {
 				.self$data <- tibble::as_tibble(list());
-				.self[['data.cols']] <- c();
+				.self$data.cols <- c();
 			}
 
-			.self[['index.name']] <- 'index';
-			.self[['cluster.name']] <- 'cluster';
+			.self$index.name <- 'index';
+			.self$cluster.name <- 'cluster';
 			for(key in c(
 				'cluster.loc',
 				'cluster.by',
 				'cluster.group.by',
 				'cols.keep'
 			)) .self[[key]] <- c();
-			.self[['cols.keep.set']] <- FALSE;
-			.self[['cluster.data']] <- tibble::as_tibble(list());
-			.self[['is.clustered']] <- FALSE;
-			.self[['is.lexical']] <- FALSE;
+			.self$cols.keep.set <- FALSE;
+			.self$cluster.data <- tibble::as_tibble(list());
+			.self$is.clustered <- FALSE;
+			.self$is.lexical <- FALSE;
 		},
 		get = function(key, ...) {
 			if(key %in% c(
@@ -94,17 +94,17 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				'cols.keep.set'
 			)) return(.self[[key]]);
 
-			if(key == 'original') return(.self[['data']]);
+			if(key == 'original') return(.self$data);
 
 			if(key == 'clusters') {
-				if(!.self[['is.clustered']]) return(tibble::as_tibble(list()));
+				if(!.self$is.clustered) return(tibble::as_tibble(list()));
 
 				INPUTVARS = list(...);
 				summary <- INPUTVARS[['summary']];
 				if(!is.logical(summary)) summary <- FALSE;
 
-				by <- .self[['cluster.by']];
-				indexname <- .self[['index.name']];
+				by <- .self$cluster.by;
+				indexname <- .self$index.name;
 				keep <- INPUTVARS[['cols.keep']];
 				if(is.character(keep)) .self$setkeep(keep);
 
@@ -114,14 +114,14 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					sep <- INPUTVARS[['sep']];
 					with_keys <- INPUTVARS[['with.keys']];
 					with_braces <- INPUTVARS[['with.braces']];
-					if(!is.logical(as_interval)) as_interval <- .self[['is.lexical']];
+					if(!is.logical(as_interval)) as_interval <- .self$is.lexical;
 					if(!is.logical(with_pts)) with_pts <- (length(by) == 1);
 					if(!is.logical(sep)) sep <- ';';
 					if(!is.logical(with_keys)) with_keys <- FALSE;
 					if(!is.logical(with_braces)) with_braces <- FALSE;
 
 					if(as_interval) {
-						if(.self[['is.lexical']] && with_pts) {
+						if(.self$is.lexical && with_pts) {
 							tib <- .self$summarise(
 								'n.start' = list(col=indexname, method='min'),
 								'n.end' = list(col=indexname, method='max'),
@@ -154,34 +154,35 @@ clusterdataframe <- setRefClass('clusterdataframe',
 
 					return(tib);
 				} else {
-					cols <- .self[['data.cols']];
-					clustername <- .self[['cluster.name']];
-					group_by <- .self[['cluster.by']];
-					group_by <- .self[['cluster.group.by']];
-					keep <- .self[['cols.keep']];
-					sel <- .self[['cluster.loc']];
+					cols <- .self$data.cols;
+					clustername <- .self$cluster.name;
+					group_by <- .self$cluster.by;
+					group_by <- .self$cluster.group.by;
+					keep <- .self$cols.keep;
+					sel <- .self$cluster.loc;
+					print(sel);
 
-					if(!.self[['cols.keep.set']]) keep <- cols;
+					if(!.self$cols.keep.set) keep <- cols;
 					keep <- unique(c(clustername, group_by, by, keep));
 
-					return(.self[['cluster.data']][sel, ] %>% dplyr::select(keep));
+					return(.self$cluster.data[sel, ] %>% dplyr::select(keep));
 				}
 			}
 
 			return(NULL);
 		},
 		setkeep = function(keep) {
-			cols <- .self[['data.cols']];
+			cols <- .self$data.cols;
 			keep <- keep[which(keep %in% cols)];
-			.self[['cols.keep']] <- keep;
-			.self[['cols.keep.set']] <- TRUE;
+			.self$cols.keep <- keep;
+			.self$cols.keep.set <- TRUE;
 		},
 		groupby = function(only_clusters=TRUE) {
-			if(!.self[['is.clustered']]) return(tibble::as_tibble(list()));
-			tib <- .self[['cluster.data']];
-			clustername <- .self[['cluster.name']];
+			if(!.self$is.clustered) return(tibble::as_tibble(list()));
+			tib <- .self$cluster.data;
+			clustername <- .self$cluster.name;
 			if(only_clusters) {
-				sel <- .self[['cluster.loc']];
+				sel <- .self$cluster.loc;
 				tib <- tib[sel, ];
 			}
 			return(tib %>% group_by_at(clustername));
@@ -197,19 +198,19 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				'cluster.group.by',
 				'cluster.data'
 			)) .self[[key]] <- obj[[key]];
-			.self[['is.clustered']] <- TRUE;
+			.self$is.clustered <- TRUE;
 		},
 		summarise = function(...) {
-			if(!.self[['is.clustered']]) return(tibble::as_tibble(list()));
+			if(!.self$is.clustered) return(tibble::as_tibble(list()));
 
 			INPUTVARS <- list(...);
 			summcols <- names(INPUTVARS);
 
-			clustername <- .self[['cluster.name']];
-			group_by <- .self[['cluster.group.by']];
-			keep <- .self[['cols.keep']];
-			cols <- .self[['data.cols']];
-			if(!.self[['cols.keep.set']]) keep <- c();
+			clustername <- .self$cluster.name;
+			group_by <- .self$cluster.group.by;
+			keep <- .self$cols.keep;
+			cols <- .self$data.cols;
+			if(!.self$cols.keep.set) keep <- c();
 			keep <- unique(c(group_by, keep));
 			keep <- keep[which(!(keep %in% summcols))];
 
@@ -507,7 +508,6 @@ buildclusters____ <- function(tib, ...) {
 
 		i0 <- 1;
 		cl <- 1;
-		sel <- c();
 		pt_to_json <- function(x) {
 			vals <- sapply(x, function(val) {
 				if(is.character(val)) val <- paste0('"',val,'"');
@@ -534,7 +534,6 @@ buildclusters____ <- function(tib, ...) {
 			sz <- i1-i0+1;
 			if(min_cluster_size <= sz && sz <= max_cluster_size) {
 				dsel <- c(i0:i1);
-				sel <- c(sel, dsel);
 				tib[dsel, clustername] <- cl;
 				cl <- cl + 1;
 			}
@@ -543,7 +542,6 @@ buildclusters____ <- function(tib, ...) {
 	} else {
 		tib <- tib %>% lexsort____(groupname);
 		cl <- 1;
-		sel <- c();
 		for(g in c(1:Ng)) {
 			ind <- which(tib[[groupname]] == g);
 			chunk <- tib[ind, ];
@@ -569,10 +567,6 @@ buildclusters____ <- function(tib, ...) {
 			clusters <- generateconnectedcomponents____(edges, min_cluster_size, max_cluster_size, cl);
 			dsel <- which(!is.na(clusters));
 			if(length(dsel) > 0) cl <- max(clusters[dsel]) + 1;
-
-			## Fasse Kluster zusammen
-			dsel <- which(!is.na(clusters));
-			sel <- c(sel, ind[dsel]);
 			tib[ind, clustername] <- clusters;
 		}
 	}
@@ -586,6 +580,7 @@ buildclusters____ <- function(tib, ...) {
 
 	## Reihenfolge wiederherstellen und Spalten filtrieren.
 	tib <- tib %>% dplyr::arrange_(indexname) %>% dplyr::select(-c(groupname));
+	sel <- which(!is.na(tib[[clustername]]));
 
 	return(list(
 		is.lexical=is_lexical,
