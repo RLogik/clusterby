@@ -118,24 +118,34 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					as_interval <- INPUTVARS[['as.interval']];
 					with_pts <- INPUTVARS[['with.points']];
 					sep <- INPUTVARS[['sep']];
+					with_index <- INPUTVARS[['with.index']];
 					with_keys <- INPUTVARS[['with.keys']];
 					with_braces <- INPUTVARS[['with.braces']];
 					if(!is.logical(as_interval)) as_interval <- .self$is.lexical;
 					if(!is.logical(with_pts)) with_pts <- (length(by) == 1);
 					if(!is.character(sep)) sep <- ';';
+					if(!is.logical(with_index)) with_index <- TRUE;
 					if(!is.logical(with_keys)) with_keys <- FALSE;
 					if(!is.logical(with_braces)) with_braces <- FALSE;
 
 					if(as_interval) {
 						if(.self$is.lexical && with_pts) {
-							tib <- .self$summarise(
-								'n.start' = list(col=indexname, method='min'),
-								'n.end' = list(col=indexname, method='max'),
-								'size' = list(col=indexname, method='length'),
-								'p.start' = list(col=by, method='lex:min', sep=sep, with.keys=with_keys, with.braces=with_braces),
-								'p.end' = list(col=by, method='lex:max', sep=sep, with.keys=with_keys, with.braces=with_braces),
-								'distance' = list(col=by, method='lex:range', mode='distance', sep=sep, with.keys=with_keys, with.braces=with_braces)
-							);
+							if(with_index) {
+								tib <- .self$summarise(
+									'p.start' = list(col=by, method='lex:min', sep=sep, with.keys=with_keys, with.braces=with_braces),
+									'p.end' = list(col=by, method='lex:max', sep=sep, with.keys=with_keys, with.braces=with_braces),
+									'distance' = list(col=by, method='lex:range', mode='distance', sep=sep, with.keys=with_keys, with.braces=with_braces),
+									'n.start' = list(col=indexname, method='min'),
+									'n.end' = list(col=indexname, method='max'),
+									'size' = list(col=indexname, method='length')
+								);
+							} else {
+								tib <- .self$summarise(
+									'p.start' = list(col=by, method='lex:min', sep=sep, with.keys=with_keys, with.braces=with_braces),
+									'p.end' = list(col=by, method='lex:max', sep=sep, with.keys=with_keys, with.braces=with_braces),
+									'distance' = list(col=by, method='lex:range', mode='distance', sep=sep, with.keys=with_keys, with.braces=with_braces)
+								);
+							}
 						} else {
 							tib <- .self$summarise(
 								'n.start' = list(col=indexname, method='min'),
@@ -145,11 +155,17 @@ clusterdataframe <- setRefClass('clusterdataframe',
 						}
 					} else {
 						if(with_pts) {
-							tib <- .self$summarise(
-								'index' = list(col=indexname, method='list', sep=sep, with.braces=with_braces),
-								'size' = list(col=indexname, method='length'),
-								'positions' = list(col=by, method='list:points', sep=sep, with.keys=with_keys, with.braces=with_braces)
-							);
+							if(with_index) {
+								tib <- .self$summarise(
+									'positions' = list(col=by, method='list:points', sep=sep, with.keys=with_keys, with.braces=with_braces),
+									'index' = list(col=indexname, method='list', sep=sep, with.braces=with_braces),
+									'size' = list(col=indexname, method='length')
+								);
+							} else {
+								tib <- .self$summarise(
+									'positions' = list(col=by, method='list:points', sep=sep, with.keys=with_keys, with.braces=with_braces)
+								);
+							}
 						} else {
 							tib <- .self$summarise(
 								'index' = list(col=indexname, method='set', sep=sep, with.braces=with_braces),
@@ -431,11 +447,14 @@ clusterdataframe <- setRefClass('clusterdataframe',
 
 			tib <- .self$groupby(TRUE);
 			tib_summ <- list();
+			tib_summ[[clustername]] <- c(NA);
 			if(n > 0) {
 				for(k in c(1:n)) {
 					col <- colnames[k];
 					args <- setNames(fnames[k], col);
-					tib_summ[[col]] <- (tib %>% dplyr::summarise_(.dots=args))[[col]];
+					tib_summ_ <- tib %>% dplyr::summarise_(.dots=args);
+					tib_summ[[col]] <- tib_summ_[[col]];
+					if(k == n) tib_summ[[clustername]] <- tib_summ_[[clustername]];
 				}
 			}
 
