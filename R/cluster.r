@@ -2,13 +2,13 @@
 #'
 #' This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
 #'
-#' \code{cd <- clusterby::clusterdataframe(df)}
+#' \code{cd <- clusterby::clusterdataframe(tib)}
 #' \code{cd$build(...)}
 #' \code{cd$summarise(...)}
 #' \code{cd$get('original', ...)}
 #' \code{cd$get('clusters', summary=<lgl>, ...)}
 #'
-#' @param df Tibble/Dataframe to be clustered. Method also possible with vectors.
+#' @param tib Tibble/Dataframe to be clustered. Method also possible with vectors.
 #' @param by string vector. Specifies the column(s) for geometric data, according to which the clusters are to be built.
 #' @param filter.by string vector. Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.
 #' @param keep string vector. Defaults to \code{c()}. Specificies columns, which should be kept when using the $get.
@@ -16,29 +16,30 @@
 #' @param min.dist a real number. Defaults to \code{0}. If the default manhattan metric is used for \code{near}, this is the minimum tolerated distance between geometric data.
 #' @param max.dist a real number. Defaults to \code{Inf}. If the default manhattan metric is used for \code{near}, this is the maximum tolerated distance between geometric data.
 #' @param strict boolean. Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.
-#' @param cluster.name string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.
+#' @param cluster.name string. Defaults to \code{'cluster'}. Running \code{tib \%>\% clusterby(...)} returns a data frame, which extends \code{tib} by 1 column with this name. This column tags the clusters by a unique index.
 #' @param min.size a natural number. Defaults to \code{1}. If a cluster has fewer elements as this, it will not be viewed as a cluster.
 #' @param max.size a natural number. Defaults to \code{Inf}, determining the maximum allowable size of a cluster.
 #' @param split boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).
 #' @param is.lexical boolean. Defaults to \code{TRUE} if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.
 #' @param no.overlaps boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy intervals that do not overlap.
-#' @param presort boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If \code{TRUE} and \code{is.lexical=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}. Regardless of this setting, in the non-summary mode, all data will be reordered to correspond to the sequence of the input data.
 #' @param summary boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{no.overlaps=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).
 #' @param as.interval boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{no.overlaps=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.
+#'
 #' @export clusterdataframe
-#' @examples cdf <- clusterby::clusterdataframe(gene); cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, no.overlaps=TRUE);
-#' @examples cdf <- clusterby::clusterdataframe(protein3d); cdf$build(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
-#' @examples cdf <- clusterby::clusterdataframe(soil_data); cdf$build(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
+#'
+#' @examples cdf <- clusterby::clusterdataframe(gene);
+#' @examples cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, no.overlaps=TRUE);
+#' @examples cdf <- clusterby::clusterdataframe(protein3d);
+#' @examples cdf$build(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
+#' @examples cdf <- clusterby::clusterdataframe(soil_data);
+#' @examples cdf$build(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
 #' @examples data <- cdf$get('clusters');
 #' @examples tib <- cdf$get('clusters', keep=c('colour','age'));
 #' @examples tib <- cdf$get('clusters', summary=FALSE);
 #' @examples tib_summ <- cdf$get('clusters', summary=TRUE, as.interval=TRUE);
 #' @examples tib_summ <- cdf$get('clusters', summary=TRUE, as.interval=FALSE);
+#'
 #' @keywords cluster clustering gene
-# #' @param tib tibble data which has been grouped.
-# #' @examples tib %>% clusterby::clusterwise(concentration=mean, names=c('set',';'), attributes=c('list',';'));
-# #' @export clusterwise
-# #' @keywords cluster summarise
 
 
 
@@ -54,8 +55,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 		cols.keep='ANY',
 		cols.keep.set='logical',
 		data='ANY',
-		data.cols='ANY',
-		cluster.data='ANY'
+		data.cols='ANY'
 	),
 	methods = list(
 		initialize = function(...) {
@@ -77,7 +77,6 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				'cols.keep'
 			)) .self[[key]] <- c();
 			.self$cols.keep.set <- FALSE;
-			.self$cluster.data <- tibble::as_tibble(list());
 			.self$is.clustered <- FALSE;
 			.self$is.lexical <- FALSE;
 		},
@@ -94,7 +93,14 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				'cols.keep.set'
 			)) return(.self[[key]]);
 
-			if(key == 'original') return(.self$data);
+			clustername <- .self$cluster.name;
+			indexname <- .self$index.name;
+
+			if(key == 'original') {
+				tib <- .self$data;
+				if(.self$is.clustered) return(tib %>% dplyr::select(-c(clustername, indexname)));
+				return(tib);
+			}
 
 			if(key == 'clusters') {
 				if(!.self$is.clustered) return(tibble::as_tibble(list()));
@@ -154,9 +160,12 @@ clusterdataframe <- setRefClass('clusterdataframe',
 
 					return(tib);
 				} else {
+					tib <- .self$data;
+
+					if(!.self$is.clustered) return(tib)
+
 					cols <- .self$data.cols;
-					clustername <- .self$cluster.name;
-					group_by <- .self$cluster.by;
+					by <- .self$cluster.by;
 					group_by <- .self$cluster.group.by;
 					keep <- .self$cols.keep;
 					sel <- .self$cluster.loc;
@@ -165,7 +174,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					if(!.self$cols.keep.set) keep <- cols;
 					keep <- unique(c(clustername, group_by, by, keep));
 
-					return(.self$cluster.data[sel, ] %>% dplyr::select(keep));
+					return(tib[sel, ] %>% dplyr::select(keep));
 				}
 			}
 
@@ -179,8 +188,9 @@ clusterdataframe <- setRefClass('clusterdataframe',
 		},
 		groupby = function(only_clusters=TRUE) {
 			if(!.self$is.clustered) return(tibble::as_tibble(list()));
-			tib <- .self$cluster.data;
+			tib <- .self$data;
 			clustername <- .self$cluster.name;
+			indexname <- .self$index.name;
 			if(only_clusters) {
 				sel <- .self$cluster.loc;
 				tib <- tib[sel, ];
@@ -196,7 +206,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 				'cluster.loc',
 				'cluster.by',
 				'cluster.group.by',
-				'cluster.data'
+				'data'
 			)) .self[[key]] <- obj[[key]];
 			.self$is.clustered <- TRUE;
 		},
@@ -290,14 +300,18 @@ clusterdataframe <- setRefClass('clusterdataframe',
 							if(with_keys) {
 								f <- function(...) {
 									pts <- list(...);
+									nom <- sapply(c(1:length(pts)), function(i) {return(paste0('c',i));});
+									names(pts) <- nom;
+									pts <- lexsort____(tibble::as_tibble(pts), nom);
 									names(pts) <- vars;
-									return(jsonlite::toJSON(tibble::as_tibble(pts)));
+									return(jsonlite::toJSON(pts));
 								};
 							} else {
 								f <- function(...) {
 									pts <- list(...);
-									names(pts) <- c(1:length(pts));
-									pts <- tibble::as_tibble(pts);
+									nom <- sapply(c(1:length(pts)), function(i) {return(paste0('c',i));});
+									names(pts) <- nom;
+									pts <- lexsort____(tibble::as_tibble(pts), nom);
 									n <- nrow(pts);
 									return(paste0(lbrace, paste(sapply(c(1:n), function(i) {
 											return(inner_to_json(pts[i, ]));
@@ -448,7 +462,6 @@ buildclusters____ <- function(tib, ...) {
 	strict <- INPUTVARS[['strict']];
 	is_lexical <- INPUTVARS[['is.lexical']];
 	no_overlaps <- INPUTVARS[['no.overlaps']];
-	presort <- INPUTVARS[['presort']];
 
 	tib <- tibble::as_tibble(tib);
 	cols <- names(tib);
@@ -457,7 +470,6 @@ buildclusters____ <- function(tib, ...) {
 	if(!is.vector(group_by)) group_by <- c();
 	if(!is.logical(is_lexical)) is_lexical <- (dim_by == 1);
 	if(!is.logical(no_overlaps)) no_overlaps <- FALSE;
-	if(!is.logical(presort)) presort <- is_lexical;
 	if(!is.numeric(min_cluster_size)) min_cluster_size <- 1;
 	if(!is.numeric(max_cluster_size)) max_cluster_size <- Inf;
 	if(!is.numeric(d_min)) d_min <- 0;
@@ -503,39 +515,33 @@ buildclusters____ <- function(tib, ...) {
 	tib <- tib %>% tibble::add_column(!!(indexname):=c(1:n), !!(clustername):=rep(NA, n));
 	## Indizes für Präsortierung hinzufügen.
 	groupname <- uniquecolumnname____('group', c(cols, clustername));
+	if(is_lexical) tib <- tib %>% lexsort____(group_by);
 	tib <- tib %>% group_by_at(group_by) %>% nest(.key=!!(chunkname));
 	Ng <- nrow(tib);
 	tib <- tib %>% tibble::add_column(!!(groupname):=c(1:Ng));
 	tib <- tib %>% unnest();
-	## ursp. Reihenfolge wiederherstellen.
-	tib <- tib %>% dplyr::arrange_(indexname);
 
 
 	## HAUPTMETHODE
 	if(is_lexical) {
-		if(no_overlaps) {
-			## wenn Überschneidungen nicht zulässig sind, dann sortiere höchstens nach Position.
-			if(presort) tib <- tib %>% lexsort____(by);
-		} else if(presort) {
-			## Ansonsten sortiere man nach group_by und dann innerhalb dieser Reihenfolge, evtl. nach Position.
-			tib <- tib %>% lexsort____(c(groupname, by));
-		} else if(length(groupname) > 0) {
-			tib <- tib %>% lexsort____(groupname);
-		}
+		presortcols <- c(groupname, by);
+		## wenn Überschneidungen nicht zulässig sind, dann sortiere nur nach Position: Klusters von verschiedenen Typen können einander blockieren.
+		if(no_overlaps) presortcols <- by;
+		tib <- tib %>% lexsort____(presortcols);
 
 		i0 <- 1;
 		cl <- 1;
 		while(i0 <= n) {
 			## Iteriere bis Gruppe sich ändert, oder nächster Punkt zu weit weg vom Kluster liegt.
 			g <- tib[i0, groupname][[1]];
-			pt <- tib[i0, by];
-			pt_ <- pt;
+			pt0 <- tib[i0, by];
+			pt1 <- pt0;
 			i1 <- i0 + 1;
 			while(i1 <= n) {
 				g_ <- tib[i1, groupname][[1]];
-				pt__ <- tib[i1, by];
-				if(!(g == g_) || !near(pt_, pt__)) break;
-				pt_ <- pt__;
+				p2 <- tib[i1, by];
+				if(!(g == g_) || !near(pt1, p2)) break;
+				pt1 <- p2;
 				i1 <- i1 +  1;
 			}
 			i1 <- i1 - 1;
@@ -588,7 +594,7 @@ buildclusters____ <- function(tib, ...) {
 		if(typ == 'integer') tib[ , col] <- as.integer(tib[[col]]);
 	}
 
-	## Reihenfolge wiederherstellen und Spalten filtrieren.
+	## ursp. Reihenfolge wiederherstellen.
 	tib <- tib %>% dplyr::arrange_(indexname) %>% dplyr::select(-c(groupname));
 	sel <- which(!is.na(tib[[clustername]]));
 
@@ -599,7 +605,7 @@ buildclusters____ <- function(tib, ...) {
 		cluster.loc=sel,
 		cluster.by=by,
 		cluster.group.by=group_by,
-		cluster.data=tib
+		data=tib
 	));
 };
 
@@ -656,8 +662,8 @@ uniquecolumnname____ <- function(nom, cols) {
 	return(col);
 };
 
-lexsort____ <- function(df, nom) {
+lexsort____ <- function(tib, nom) {
 	## data %>% arrange_(c(#,#,...,#)); funktioniert nicht.
-	expr <- paste0("df[with(df, order(",paste(nom, collapse=','),")), ]");
+	expr <- paste0("tib[with(tib, order(",paste(nom, collapse=','),")), ]");
 	return(eval(parse(text=expr)));
 };

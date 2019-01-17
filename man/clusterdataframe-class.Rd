@@ -6,7 +6,7 @@
 \alias{clusterdataframe}
 \title{Data-clustering}
 \arguments{
-\item{df}{Tibble/Dataframe to be clustered. Method also possible with vectors.}
+\item{tib}{Tibble/Dataframe to be clustered. Method also possible with vectors.}
 
 \item{by}{string vector. Specifies the column(s) for geometric data, according to which the clusters are to be built.}
 
@@ -22,7 +22,7 @@
 
 \item{strict}{boolean. Defaults to \code{FALSE}. If the default manhattan metric is used for \code{near}, this sets the proximity to be a strict \code{< dist} or else \code{<= dist}.}
 
-\item{cluster.name}{string. Defaults to \code{'cluster'}. Running \code{df \%>\% clusterby(...)} returns a data frame, which extends \code{df} by 1 column with this name. This column tags the clusters by a unique index.}
+\item{cluster.name}{string. Defaults to \code{'cluster'}. Running \code{tib \%>\% clusterby(...)} returns a data frame, which extends \code{tib} by 1 column with this name. This column tags the clusters by a unique index.}
 
 \item{min.size}{a natural number. Defaults to \code{1}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
@@ -34,8 +34,6 @@
 
 \item{no.overlaps}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy intervals that do not overlap.}
 
-\item{presort}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If \code{TRUE} and \code{is.lexical=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}. Regardless of this setting, in the non-summary mode, all data will be reordered to correspond to the sequence of the input data.}
-
 \item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{no.overlaps=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
 
 \item{as.interval}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{no.overlaps=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.}
@@ -44,7 +42,7 @@
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
 }
 \details{
-\code{cd <- clusterby::clusterdataframe(df)}
+\code{cd <- clusterby::clusterdataframe(tib)}
 \code{cd$build(...)}
 \code{cd$summarise(...)}
 \code{cd$get('original', ...)}
@@ -52,14 +50,18 @@ This package contains methods, which enables clustering in dataframes. Particula
 }
 
 \examples{
-cdf <- clusterby::clusterdataframe(gene); cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, no.overlaps=TRUE);
-cdf <- clusterby::clusterdataframe(protein3d); cdf$build(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
-cdf <- clusterby::clusterdataframe(soil_data); cdf$build(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
+cdf <- clusterby::clusterdataframe(gene);
+cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, no.overlaps=TRUE);
+cdf <- clusterby::clusterdataframe(protein3d);
+cdf$build(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
+cdf <- clusterby::clusterdataframe(soil_data);
+cdf$build(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
 data <- cdf$get('clusters');
 tib <- cdf$get('clusters', keep=c('colour','age'));
 tib <- cdf$get('clusters', summary=FALSE);
 tib_summ <- cdf$get('clusters', summary=TRUE, as.interval=TRUE);
 tib_summ <- cdf$get('clusters', summary=TRUE, as.interval=FALSE);
+
 }
 \keyword{cluster}
 \keyword{clustering}
