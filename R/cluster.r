@@ -513,25 +513,24 @@ buildclusters____ <- function(tib, ...) {
 
 	## HAUPTMETHODE
 	if(is_lexical) {
-		if(presort) tib <- tib %>% lexsort____(by);
-		if(!no_overlaps) tib <- tib %>% lexsort____(groupname);
-		tib_ <- tib;
+		if(no_overlaps) {
+			## wenn Überschneidungen nicht zulässig sind, dann sortiere höchstens nach Position.
+			if(presort) tib <- tib %>% lexsort____(by);
+		} else if(presort) {
+			## Ansonsten sortiere man nach group_by und dann innerhalb dieser Reihenfolge, evtl. nach Position.
+			tib <- tib %>% lexsort____(groupname, by);
+		} else {
+			tib <- tib %>% lexsort____(groupname);
+		}
 
 		i0 <- 1;
 		cl <- 1;
-		pt_to_json <- function(x) {
-			vals <- sapply(x, function(val) {
-				if(is.character(val)) val <- paste0('"',val,'"');
-				return(val);
-			});
-			return(paste0('[',paste(vals, collapse=','),']'));
-		};
 		while(i0 <= n) {
 			## Iteriere bis Gruppe sich ändert, oder nächster Punkt zu weit weg vom Kluster liegt.
-			i1 <- i0 + 1;
 			g <- tib[i0, groupname][[1]];
 			pt <- tib[i0, by];
 			pt_ <- pt;
+			i1 <- i0 + 1;
 			while(i1 <= n) {
 				g_ <- tib[i1, groupname][[1]];
 				pt__ <- tib[i1, by];
