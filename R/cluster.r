@@ -303,7 +303,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					}
 
 					if(is.function(m)) {
-						f <- opt;
+						f <- m;
 					} else if(is.character(m)) {
 						opt <- m[1];
 						if(opt == 'pick') {
