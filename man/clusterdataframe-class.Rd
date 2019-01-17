@@ -12,7 +12,7 @@
 
 \item{filter.by}{string vector. Defaults to \code{c()}. Specificies columns, by which data is to be preliminarily divided into groups, within which the clusters are to be built.}
 
-\item{keep}{string vector. Defaults to \code{c()}. Specificies columns, which should be kept in a summary.}
+\item{keep}{string vector. Defaults to \code{c()}. Specificies columns, which should be kept when using the $get.}
 
 \item{near}{symmetric function in two arguments. This function operates pairs of entries in the columns with geometric data and returns \code{TRUE}/\code{FALSE} if entries are near. Defaults to a Manhattan metric.}
 
@@ -26,17 +26,19 @@
 
 \item{min.size}{a natural number. Defaults to \code{1}. If a cluster has fewer elements as this, it will not be viewed as a cluster.}
 
+\item{max.size}{a natural number. Defaults to \code{Inf}, determining the maximum allowable size of a cluster.}
+
 \item{split}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).}
 
 \item{is.lexical}{boolean. Defaults to \code{TRUE} if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.}
 
-\item{is.disjoint}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy disjoint intervals.}
+\item{no.overlaps}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy intervals that do not overlap.}
 
 \item{presort}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If \code{TRUE} and \code{is.lexical=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}. Regardless of this setting, in the non-summary mode, all data will be reordered to correspond to the sequence of the input data.}
 
-\item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{is.disjoint=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
+\item{summary}{boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{no.overlaps=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).}
 
-\item{as.interval}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{is.disjoint=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.}
+\item{as.interval}{boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{no.overlaps=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.}
 }
 \description{
 This package contains methods, which enables clustering in dataframes. Particularly useful for bio-mathematics, cognitive sciences, etc.
@@ -45,18 +47,19 @@ This package contains methods, which enables clustering in dataframes. Particula
 \code{cd <- clusterby::clusterdataframe(df)}
 \code{cd$build(...)}
 \code{cd$summarise(...)}
-\code{cd$getoriginal()}
-\code{cd$getclusters(...)}
+\code{cd$get('original', ...)}
+\code{cd$get('clusters', summary=<lgl>, ...)}
 }
 
 \examples{
-cdf <- clusterby::clusterdataframe(gene); cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, is.disjoint=TRUE);
+cdf <- clusterby::clusterdataframe(gene); cdf$build(by='position', filter.by=c('gene','actve'), min.size=4, max.dist=400, strict=TRUE, is.lexical=TRUE, no.overlaps=TRUE);
 cdf <- clusterby::clusterdataframe(protein3d); cdf$build(by=c('x','y','z'), filter.by='celltype', max.dist=5.8e-7, cluster.name='segment');
 cdf <- clusterby::clusterdataframe(soil_data); cdf$build(by=c('x','y'), filter.by=c('density','substance'), max.dist=10e-3, cluster.name='clump');
-data <- cdf$getclusters();
-tib <- cdf$getclusters();
-tib <- cdf$getclusters(summary=FALSE);
-tib_summ <- cdf$getclusters(summary=TRUE);
+data <- cdf$get('clusters');
+tib <- cdf$get('clusters', keep=c('colour','age'));
+tib <- cdf$get('clusters', summary=FALSE);
+tib_summ <- cdf$get('clusters', summary=TRUE, as.interval=TRUE);
+tib_summ <- cdf$get('clusters', summary=TRUE, as.interval=FALSE);
 }
 \keyword{cluster}
 \keyword{clustering}
