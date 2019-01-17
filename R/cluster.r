@@ -21,7 +21,7 @@
 #' @param max.size a natural number. Defaults to \code{Inf}, determining the maximum allowable size of a cluster.
 #' @param split boolean. Defaults to \code{FALSE}. If set to \code{TRUE}, then the output will be group the tibble data by cluster (equivalent to performing \code{\%>\% group_by(...)}).
 #' @param is.lexical boolean. Defaults to \code{TRUE} if \code{length(by)=1}, otherwise to \code{FALSE}. If set to \code{TRUE}, then the geometry is assumed to be linear and endowed with a simple difference-metric. This allows for faster computation.
-#' @param no.overlaps boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy intervals that do not overlap.
+#' @param no.overlaps boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE}, then the clusters must occupy intervals that do not overlap.
 #' @param presort boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE}, otherwise to \code{FALSE}. If \code{TRUE} and \code{is.lexical=TRUE}, then the data will be sorted by the \code{by} column first before the clusters are built. Normally this is desirable, however the option is included to prevent this, by setting \code{presort=FALSE}. Regardless of this setting, in the non-summary mode, all data will be reordered to correspond to the sequence of the input data.
 #' @param summary boolean. Defaults to \code{FALSE}. If set to \code{TRUE} in combination with \code{is.lexical=TRUE} and **assuming** the user has presorted the data by the \code{by}-column, then a summary of the clusters as intervalls is provided. This makes most sense, if \code{no.overlaps=TRUE}. This produces the columns \code{filter.by, by, pstart, pend, nstart, nend, n} where \code{pstart}, \code{pend} describes the interval, \code{nstart}, \code{nend} provides the original indices in the input data, and \code{n} is the cluster size (number of points).
 #' @param as.interval boolean. Defaults to \code{TRUE} if \code{is.lexical=TRUE} and \code{no.overlaps=TRUE}, otherwise defaults to \code{FALSE}. If \code{TRUE} and, then summaries provide information as interval end points. If \code{FALSE}, then summaries are provided as lists.
@@ -456,7 +456,7 @@ buildclusters____ <- function(tib, ...) {
 	dim_by <- length(by);
 	if(!is.vector(group_by)) group_by <- c();
 	if(!is.logical(is_lexical)) is_lexical <- (dim_by == 1);
-	if(!is.logical(no_overlaps)) no_overlaps <- is_lexical;
+	if(!is.logical(no_overlaps)) no_overlaps <- FALSE;
 	if(!is.logical(presort)) presort <- is_lexical;
 	if(!is.numeric(min_cluster_size)) min_cluster_size <- 1;
 	if(!is.numeric(max_cluster_size)) max_cluster_size <- Inf;
