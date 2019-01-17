@@ -116,7 +116,7 @@ clusterdataframe <- setRefClass('clusterdataframe',
 					with_braces <- INPUTVARS[['with.braces']];
 					if(!is.logical(as_interval)) as_interval <- .self$is.lexical;
 					if(!is.logical(with_pts)) with_pts <- (length(by) == 1);
-					if(!is.logical(sep)) sep <- ';';
+					if(!is.character(sep)) sep <- ';';
 					if(!is.logical(with_keys)) with_keys <- FALSE;
 					if(!is.logical(with_braces)) with_braces <- FALSE;
 
