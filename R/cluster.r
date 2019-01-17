@@ -518,8 +518,8 @@ buildclusters____ <- function(tib, ...) {
 			if(presort) tib <- tib %>% lexsort____(by);
 		} else if(presort) {
 			## Ansonsten sortiere man nach group_by und dann innerhalb dieser Reihenfolge, evtl. nach Position.
-			tib <- tib %>% lexsort____(groupname, by);
-		} else {
+			tib <- tib %>% lexsort____(c(groupname, by));
+		} else if(length(groupname) > 0) {
 			tib <- tib %>% lexsort____(groupname);
 		}
 
